@@ -29,4 +29,12 @@ export default tseslint.config(
       "prefer-const": "error",
     },
   },
+  {
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+      },
+    },
+  },
 );

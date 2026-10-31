@@ -5,36 +5,11 @@ import { serverError, safeErrorMessage } from "@/lib/errors";
 import { MODELS_CACHE_TTL_MS, MODELS_FETCH_TIMEOUT_MS } from "@/lib/constants";
 import { getConfig } from "@/lib/session-store";
 import { agentEnv, classifyAgentStartError, resolveAgentBin } from "@/lib/cursor-cli";
+import { parseModels } from "@/lib/models";
 
 const execFileAsync = promisify(execFile);
 
 export const dynamic = "force-dynamic";
-
-function parseModels(output: string): ModelInfo[] {
-  const models: ModelInfo[] = [];
-
-  for (const line of output.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("Available") || trimmed.startsWith("Tip:")) continue;
-
-    const match = trimmed.match(
-      /^(\S+)\s+-\s+(.+?)(?:\s+\((default|current)(?:,\s*(default|current))?\))?$/,
-    );
-    if (!match) continue;
-
-    const [, id, label, tag1, tag2] = match;
-    const tags = [tag1, tag2].filter(Boolean);
-
-    models.push({
-      id,
-      label: label.trim(),
-      isDefault: tags.includes("default"),
-      isCurrent: tags.includes("current"),
-    });
-  }
-
-  return models;
-}
 
 let cachedModels: { models: ModelInfo[]; fetchedAt: number } | null = null;
 
@@ -59,9 +34,19 @@ export async function GET() {
       env: agentEnv(),
     });
 
-    const models = parseModels(stdout);
+    const parsed = parseModels(stdout);
+    const models: ModelInfo[] = [];
 
-    if (models.length > 0) {
+    if (parsed.length > 0) {
+      if (!parsed.some((m) => m.id === "auto")) {
+        models.push({
+          id: "auto",
+          label: "Auto",
+          isDefault: false,
+          isCurrent: false,
+        });
+      }
+      models.push(...parsed);
       cachedModels = { models, fetchedAt: Date.now() };
     }
 

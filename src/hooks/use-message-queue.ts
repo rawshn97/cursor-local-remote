@@ -23,7 +23,7 @@ export function useMessageQueue({ selectedModel, selectedMode }: UseMessageQueue
         id: uuid(),
         content,
         timestamp: Date.now(),
-        model: selectedModel,
+        model: selectedModel !== "auto" ? selectedModel : undefined,
         mode: selectedMode,
       };
       setQueuedMessages((prev) => [...prev, msg]);

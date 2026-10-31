@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start cursor-local-remote (CLR) — Cursor CLI agent on LAN.
+# Start cursor-local-remote (CLR): Cursor CLI agent on LAN.
 # Default port: 3100. Persistent daemon: launchd via clr-service-install.sh
 set -euo pipefail
 
@@ -21,6 +21,12 @@ NO_FOLDER="${HOME}/.cursor-local-remote/no-folder"
 
 export CURSOR_DEFAULT_MODEL="${CURSOR_DEFAULT_MODEL:-auto}"
 export CLR_NODE
+
+if [[ -z "${CURSOR_API_KEY:-}" && -f "${HOME}/.cursor/secrets/cursor.env" ]]; then
+  set -a
+  source "${HOME}/.cursor/secrets/cursor.env" 2>/dev/null || true
+  set +a
+fi
 
 CLR_DATA_DIR="$HOME/.cursor-local-remote"
 mkdir -p "$CLR_DATA_DIR" "$NO_FOLDER"

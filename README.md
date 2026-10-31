@@ -207,7 +207,7 @@ npm install
 npm run dev
 ```
 
-**Agent-oriented docs:** [CLAUDE.md](./CLAUDE.md) (key paths, deploy, mobile UX). **User guide:** [docs/USER_GUIDE.md](./docs/USER_GUIDE.md). **Remote deploy:** [deploy/README.md](./deploy/README.md), [deploy/API.md](./deploy/API.md).
+**Agent-oriented docs:** [CLAUDE.md](./CLAUDE.md) (key paths, deploy, mobile UX). **Design System:** [DESIGN.md](./DESIGN.md) (aesthetic direction, typography, color, spacing, motion, components). **User guide:** [docs/USER_GUIDE.md](./docs/USER_GUIDE.md). **Remote deploy:** [deploy/README.md](./deploy/README.md), [deploy/API.md](./deploy/API.md).
 
 **Apply local changes (launchd install):**
 

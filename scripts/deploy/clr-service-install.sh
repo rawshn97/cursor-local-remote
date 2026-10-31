@@ -122,6 +122,17 @@ PLIST
 PLIST
   fi
 
+  local cursor_api_key="${CURSOR_API_KEY:-}"
+  if [[ -z "${cursor_api_key}" && -f "${HOME}/.cursor/secrets/cursor.env" ]]; then
+    cursor_api_key="$(grep '^CURSOR_API_KEY=' "${HOME}/.cursor/secrets/cursor.env" | head -1 | cut -d= -f2- | tr -d '"'"'" || true)"
+  fi
+  if [[ -n "${cursor_api_key}" ]]; then
+    cat >>"${PLIST_PATH}" <<PLIST
+    <key>CURSOR_API_KEY</key>
+    <string>${cursor_api_key}</string>
+PLIST
+  fi
+
   cat >>"${PLIST_PATH}" <<PLIST
   </dict>
 </dict>

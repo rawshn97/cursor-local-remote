@@ -2,7 +2,7 @@
   "name": "cursor-local-remote",
   "version": "0.1.15",
   "type": "module",
-  "description": "Cursor Local Remote for MacBook — control Cursor CLI from phone or browser on your Mac",
+  "description": "Cursor Local Remote for MacBook: control Cursor CLI from phone or browser on your Mac",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -32,6 +32,7 @@
     "next.config.mjs"
   ],
   "scripts": {
+    "test": "node --import ./tests/register.js --test tests/cursor-cli.test.mjs",
     "dev": "node bin/dev.mjs",
     "build": "next build",
     "start": "node bin/dev.mjs --start",

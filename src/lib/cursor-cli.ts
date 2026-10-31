@@ -1,5 +1,5 @@
 import { spawn, execFileSync, type ChildProcess } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import type { AgentMode } from "@/lib/types";
@@ -15,6 +15,36 @@ export function resolveAgentBin(): string {
   return agentBinCache;
 }
 
+export function loadCursorApiKey(): string | undefined {
+  if (process.env.CURSOR_API_KEY?.trim()) return process.env.CURSOR_API_KEY.trim();
+  if (process.env.CURSOR_AUTH_TOKEN?.trim()) return process.env.CURSOR_AUTH_TOKEN.trim();
+  const candidates = [
+    join(homedir(), ".cursor", "secrets", "cursor.env"),
+    join(homedir(), ".cursor-local-remote", ".env"),
+  ];
+  for (const file of candidates) {
+    if (existsSync(file)) {
+      try {
+        const content = readFileSync(file, "utf8");
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("CURSOR_API_KEY=")) {
+            const val = trimmed.slice("CURSOR_API_KEY=".length).trim().replace(/^['"]|['"]$/g, "");
+            if (val) return val;
+          }
+          if (trimmed.startsWith("CURSOR_AUTH_TOKEN=")) {
+            const val = trimmed.slice("CURSOR_AUTH_TOKEN=".length).trim().replace(/^['"]|['"]$/g, "");
+            if (val) return val;
+          }
+        }
+      } catch {
+        // ignore read errors
+      }
+    }
+  }
+  return undefined;
+}
+
 export function agentEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.CURSOR_AGENT;
@@ -23,6 +53,12 @@ export function agentEnv(): NodeJS.ProcessEnv {
   const path = env.PATH || "";
   if (!path.split(":").includes(localBin)) {
     env.PATH = `${localBin}:${path}`;
+  }
+  if (!env.CURSOR_API_KEY && !env.CURSOR_AUTH_TOKEN) {
+    const key = loadCursorApiKey();
+    if (key) {
+      env.CURSOR_API_KEY = key;
+    }
   }
   return env;
 }
@@ -83,12 +119,23 @@ function shouldForce(): boolean {
 }
 
 
-async function resolveAgentModel(explicit?: string): Promise<string | undefined> {
-  if (explicit) return explicit;
-  const fromEnv = process.env.CURSOR_DEFAULT_MODEL?.trim();
+export async function resolveAgentModel(explicit?: string): Promise<string | undefined> {
+  const clean = (val?: string): string | undefined => {
+    if (!val) return undefined;
+    const trimmed = val.trim();
+    if (!trimmed || trimmed === "auto" || trimmed === "default") return undefined;
+    return trimmed;
+  };
+
+  const fromExplicit = clean(explicit);
+  if (fromExplicit) return fromExplicit;
+
+  const fromEnv = clean(process.env.CURSOR_DEFAULT_MODEL);
   if (fromEnv) return fromEnv;
-  const fromConfig = await getConfig("default_model");
+
+  const fromConfig = clean(await getConfig("default_model"));
   if (fromConfig) return fromConfig;
+
   return undefined;
 }
 
@@ -106,9 +153,8 @@ export interface SpawnedAgent {
   ) => Promise<string | null>;
 }
 
-export async function spawnAgent(options: AgentOptions): Promise<SpawnedAgent> {
-  ensureAgentOnPath();
-  const args = ["-p", options.prompt, "--output-format", "stream-json", "--stream-partial-output"];
+export async function buildAgentArgs(options: AgentOptions): Promise<string[]> {
+  const args = ["-p", "--output-format", "stream-json", "--stream-partial-output"];
 
   if (await shouldTrust()) {
     args.push("--trust");
@@ -130,6 +176,15 @@ export async function spawnAgent(options: AgentOptions): Promise<SpawnedAgent> {
   if (options.mode && options.mode !== "agent") {
     args.push("--mode", options.mode);
   }
+
+  // End-of-options delimiter so prompts starting with '-' are not parsed as flags
+  args.push("--", options.prompt);
+  return args;
+}
+
+export async function spawnAgent(options: AgentOptions): Promise<SpawnedAgent> {
+  ensureAgentOnPath();
+  const args = await buildAgentArgs(options);
 
   const child = spawn(resolveAgentBin(), args, {
     stdio: ["pipe", "pipe", "pipe"],
