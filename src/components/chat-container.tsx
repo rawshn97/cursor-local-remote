@@ -227,7 +227,7 @@ export function ChatContainer({
     : `${elapsed}s`;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full w-full flex flex-col min-h-0 overflow-hidden">
       <header className="shrink-0 flex items-center justify-between header-bar px-2 sm:px-3 border-b border-border gap-1">
         <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
           <button

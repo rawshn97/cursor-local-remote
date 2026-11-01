@@ -336,7 +336,7 @@ export function MessageList({
 
   if (isLoadingHistory) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex items-center gap-2 text-text-muted text-clr-base">
           <Spinner className="w-3.5 h-3.5" />
           Loading session...
@@ -347,8 +347,8 @@ export function MessageList({
 
   if (timeline.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="flex flex-col items-center max-w-sm">
+      <div className="flex-1 min-h-0 flex items-center justify-center px-6 overflow-y-auto chat-scroll">
+        <div className="flex flex-col items-center max-w-sm text-center">
           <p className="text-text-secondary text-clr-base font-medium mb-1">Cursor Remote</p>
           <p className="text-text-muted text-clr-sm leading-relaxed">
             Send a message to start an agent session.
@@ -379,7 +379,7 @@ export function MessageList({
   const showRetry = !isStreaming && lastMessage?.role === "user" && onRetry;
 
   return (
-    <div className="flex-1 overflow-hidden relative">
+    <div className="flex-1 min-h-0 overflow-hidden relative">
       <div
         ref={scrollRef}
         onScroll={handleScroll}

@@ -34,13 +34,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
   themeColor: "#0c0c0e",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}>
-      <body className="overscroll-none">
+    <html lang="en" className={`h-full overflow-hidden ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}>
+      <body className="h-full h-dvh w-full overflow-hidden overscroll-none">
         {children}
         <PwaInstall />
       </body>

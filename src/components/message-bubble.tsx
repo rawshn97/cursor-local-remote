@@ -41,7 +41,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   if (isUser) {
     return (
       <div className="py-3 group relative">
-        <div className="text-clr-base leading-[1.6] text-text whitespace-pre-wrap break-words bg-bg-surface rounded-lg px-3.5 py-2.5">
+        <div className="text-clr-base leading-[1.6] text-text whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-bg-surface rounded-lg px-3.5 py-2.5">
           {message.content}
         </div>
         <CopyButton copied={copied} onClick={handleCopy} />
@@ -50,7 +50,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   }
 
   return (
-    <div className="py-3 group relative">
+    <div className="py-3 group relative min-w-0">
       <Markdown content={message.content} />
       <CopyButton copied={copied} onClick={handleCopy} />
     </div>

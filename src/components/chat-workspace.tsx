@@ -221,9 +221,9 @@ export function ChatWorkspace() {
   const currentSessionId = instances.find((i) => i.id === activeId)?.sessionId ?? null;
 
   return (
-    <div className="h-dvh">
+    <div className="h-full h-dvh w-full overflow-hidden flex flex-col">
       {instances.map((inst) => (
-        <div key={inst.id} className={inst.id === activeId ? "h-full" : "hidden"}>
+        <div key={inst.id} className={inst.id === activeId ? "h-full w-full flex flex-col min-h-0 overflow-hidden" : "hidden"}>
           <ErrorBoundary fallback="inline">
             <ChatContainer
               initialSessionId={inst.initialSessionId}

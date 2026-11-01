@@ -190,7 +190,7 @@ export function ChatInput({
             placeholder={isStreaming ? "Type to queue a message..." : "Ask Cursor anything..."}
             aria-label="Message input"
             rows={1}
-            className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1.5 pr-12 text-clr-base text-text placeholder:text-text-muted focus:outline-none"
+            className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1.5 pr-12 text-clr-base text-text placeholder:text-text-muted focus:outline-none break-words [overflow-wrap:anywhere]"
           />
 
           {images.length > 0 && (
@@ -211,8 +211,8 @@ export function ChatInput({
             </div>
           )}
 
-          <div className="flex items-center justify-between px-2 pb-2">
-            <div className="flex items-center gap-1" role="radiogroup" aria-label="Agent mode">
+          <div className="flex items-center justify-between px-2 pb-2 gap-2 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap" role="radiogroup" aria-label="Agent mode">
               {MODES.map((mode) => (
                 <button
                   key={mode.id}
@@ -233,7 +233,7 @@ export function ChatInput({
               ))}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
               <div className="relative">
                 <button
                   onClick={() => {

@@ -92,7 +92,7 @@ export const Markdown = memo(function Markdown({ content }: MarkdownProps) {
   const normalized = useMemo(() => normalizeMarkdown(content), [content]);
 
   return (
-    <div className="text-text markdown-body break-words">
+    <div className="text-text markdown-body break-words [overflow-wrap:anywhere] min-w-0">
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={components}>
         {normalized}
       </ReactMarkdown>
