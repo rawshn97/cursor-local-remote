@@ -34,14 +34,21 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   themeColor: "#0c0c0e",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`h-full overflow-hidden ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}>
-      <body className="h-full h-dvh w-full overflow-hidden overscroll-none">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)cr_token=([^;]+)/);if(m&&m[1]){localStorage.setItem("clr_token",decodeURIComponent(m[1]));}}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="h-full w-full overflow-hidden overscroll-none">
         {children}
         <PwaInstall />
       </body>

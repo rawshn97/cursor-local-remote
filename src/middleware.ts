@@ -118,10 +118,25 @@ function unauthorizedHtml(wrongToken = false): string {
     <p class="hint">Run <code>clr</code> in your terminal to see the QR code and token.</p>
   </div>
   <script>
+    (function() {
+      var isWrong = ${wrongToken ? "true" : "false"};
+      try {
+        if (isWrong) {
+          localStorage.removeItem("clr_token");
+        } else {
+          var saved = localStorage.getItem("clr_token");
+          if (saved) {
+            window.location.replace("?token=" + encodeURIComponent(saved));
+            return;
+          }
+        }
+      } catch (err) {}
+    })();
     function handleSubmit(e) {
       e.preventDefault();
       var v = document.getElementById("token").value.trim();
       if (!v) return false;
+      try { localStorage.setItem("clr_token", v); } catch (err) {}
       window.location.href = "?token=" + encodeURIComponent(v);
       return false;
     }
@@ -130,13 +145,20 @@ function unauthorizedHtml(wrongToken = false): string {
 </html>`;
 }
 
-function setSessionCookie(res: NextResponse, token: string): void {
+function setSessionCookie(res: NextResponse, token: string, isHttps: boolean): void {
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: COOKIE_MAX_AGE,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
+  });
+  res.cookies.set("cr_token", token, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+    secure: isHttps,
   });
 }
 
@@ -146,6 +168,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const isHttps = req.nextUrl.protocol === "https:" || req.headers.get("x-forwarded-proto") === "https";
   const url = req.nextUrl.clone();
   const queryToken = url.searchParams.get("token");
 
@@ -153,7 +176,7 @@ export async function middleware(req: NextRequest) {
     if (queryToken.toLowerCase() === token) {
       url.searchParams.delete("token");
       const res = NextResponse.redirect(url);
-      setSessionCookie(res, token);
+      setSessionCookie(res, token, isHttps);
       return res;
     }
 
@@ -164,7 +187,20 @@ export async function middleware(req: NextRequest) {
   }
 
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
-  if (cookie?.toLowerCase() === token) return NextResponse.next();
+  if (cookie?.toLowerCase() === token) {
+    if (!req.cookies.get("cr_token")) {
+      const res = NextResponse.next();
+      res.cookies.set("cr_token", token, {
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/",
+        maxAge: COOKIE_MAX_AGE,
+        secure: isHttps,
+      });
+      return res;
+    }
+    return NextResponse.next();
+  }
 
   const auth = req.headers.get("authorization");
   if (auth?.toLowerCase() === `bearer ${token}`) return NextResponse.next();
@@ -174,7 +210,7 @@ export async function middleware(req: NextRequest) {
     const payload = await verifyCloudflareAccessJwt(cfJwt);
     if (payload) {
       const res = NextResponse.next();
-      setSessionCookie(res, token);
+      setSessionCookie(res, token, isHttps);
       return res;
     }
   }

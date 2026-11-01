@@ -171,7 +171,7 @@ export function ChatInput({
   const rest = models.filter((m) => m.id !== "auto");
 
   return (
-    <div className="shrink-0 bg-bg px-4 py-3 safe-bottom">
+    <div className="shrink-0 bg-bg px-3 py-2 sm:px-4 sm:py-3 safe-bottom">
       <div className="max-w-3xl mx-auto">
         <div
           className={`relative bg-bg-surface border rounded-xl focus-within:border-text-muted/40 transition-colors ${

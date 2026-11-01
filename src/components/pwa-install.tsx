@@ -16,6 +16,14 @@ function isAndroid(): boolean {
   return /Android/i.test(navigator.userAgent);
 }
 
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
@@ -30,6 +38,7 @@ export function PwaInstall() {
   const [showIosHint, setShowIosHint] = useState(false);
 
   useEffect(() => {
+    if (isStandalone()) return;
     apiFetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
@@ -39,7 +48,7 @@ export function PwaInstall() {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || isStandalone()) return;
 
     registerServiceWorker().then(() => {
       import("@khmyznikov/pwa-install").catch(() => {});
@@ -50,7 +59,7 @@ export function PwaInstall() {
     }
   }, [enabled]);
 
-  if (!enabled) return null;
+  if (!enabled || isStandalone()) return null;
 
   return (
     <>

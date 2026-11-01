@@ -27,8 +27,29 @@ async function attempt(input: string, init: ApiFetchOptions, retriesLeft: number
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const headers = new Headers(fetchInit.headers);
+    if (typeof window !== "undefined") {
+      const match = document.cookie.match(/(?:^|;\s*)cr_token=([^;]+)/);
+      if (match?.[1]) {
+        try {
+          localStorage.setItem("clr_token", decodeURIComponent(match[1]));
+        } catch {
+          // Ignore storage access errors
+        }
+      }
+      try {
+        const stored = localStorage.getItem("clr_token");
+        if (stored && !headers.has("authorization")) {
+          headers.set("authorization", `Bearer ${stored}`);
+        }
+      } catch {
+        // Ignore storage access errors
+      }
+    }
+
     const res = await fetch(input, {
       ...fetchInit,
+      headers,
       credentials: "same-origin",
       signal: controller.signal,
     });
