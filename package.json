@@ -32,7 +32,7 @@
     "next.config.mjs"
   ],
   "scripts": {
-    "test": "node --import ./tests/register.js --test tests/cursor-cli.test.mjs",
+    "test": "node --import ./tests/register.js --test \"tests/*.test.mjs\"",
     "dev": "node bin/dev.mjs",
     "build": "next build",
     "start": "node bin/dev.mjs --start",
