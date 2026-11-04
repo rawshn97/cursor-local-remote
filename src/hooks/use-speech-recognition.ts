@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useSyncExternalStore } from "react";
-import { formatSpokenText } from "@/lib/speech";
+import { assembleSpeechResults } from "@/lib/speech";
 
 function checkSpeechSupport(): boolean {
   if (typeof window === "undefined") return false;
@@ -76,6 +76,8 @@ export function useSpeechRecognition({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const isManuallyStoppedRef = useRef(false);
+  const sessionCommittedRef = useRef("");
+  const currentSessionFinalRef = useRef("");
 
   const stopListening = useCallback(() => {
     isManuallyStoppedRef.current = true;
@@ -104,6 +106,8 @@ export function useSpeechRecognition({
 
     setErrorMessage(null);
     isManuallyStoppedRef.current = false;
+    sessionCommittedRef.current = "";
+    currentSessionFinalRef.current = "";
 
     try {
       const recognition = new SpeechRecognitionClass();
@@ -117,27 +121,27 @@ export function useSpeechRecognition({
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalStr = "";
-        let interimStr = "";
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const items: Array<{ isFinal: boolean; transcript: string }> = [];
+        for (let i = 0; i < event.results.length; ++i) {
           const item = event.results[i];
-          if (item.isFinal) {
-            finalStr += item[0].transcript;
-          } else {
-            interimStr += item[0].transcript;
+          if (item && item[0]) {
+            items.push({
+              isFinal: item.isFinal,
+              transcript: item[0].transcript,
+            });
           }
         }
 
-        if (finalStr.trim()) {
-          const formatted = formatSpokenText(finalStr);
-          if (formatted) {
-            onTranscript?.(formatted);
-          }
-        }
+        const { finalTranscript, interimTranscript, combined } = assembleSpeechResults(items);
+        currentSessionFinalRef.current = finalTranscript;
+        setInterimTranscript(interimTranscript);
+        onInterim?.(interimTranscript);
 
-        setInterimTranscript(interimStr);
-        onInterim?.(interimStr);
+        const separator = sessionCommittedRef.current && combined ? " " : "";
+        const fullSpoken = sessionCommittedRef.current + separator + combined;
+        if (fullSpoken) {
+          onTranscript?.(fullSpoken);
+        }
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -160,8 +164,12 @@ export function useSpeechRecognition({
       };
 
       recognition.onend = () => {
-        // Auto-restart if not manually stopped (mobile continuous session resilience)
         if (!isManuallyStoppedRef.current && isListening) {
+          if (currentSessionFinalRef.current) {
+            const separator = sessionCommittedRef.current ? " " : "";
+            sessionCommittedRef.current += separator + currentSessionFinalRef.current;
+            currentSessionFinalRef.current = "";
+          }
           try {
             recognition.start();
             return;

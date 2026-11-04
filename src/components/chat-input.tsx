@@ -5,7 +5,6 @@ import type { AgentMode, ModelInfo } from "@/lib/types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useHaptics } from "@/hooks/use-haptics";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
-import { insertAtCursor } from "@/lib/speech";
 import { apiFetch } from "@/lib/api-fetch";
 import { ChevronDown, Spinner, StopIcon, PlusIcon, ArrowUp, CloseIcon, MicIcon } from "./icons";
 
@@ -49,24 +48,20 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isCoarsePointer = useCoarsePointer();
   const haptics = useHaptics();
+  const basePromptRef = useRef("");
 
-  const handleTranscript = useCallback((finalChunk: string) => {
-    setValue((prev) => {
-      const textarea = textareaRef.current;
-      const start = textarea?.selectionStart ?? undefined;
-      const end = textarea?.selectionEnd ?? undefined;
-      const { text, newCursor } = insertAtCursor(prev, finalChunk, start, end);
+  const handleTranscript = useCallback((spokenFull: string) => {
+    const base = basePromptRef.current;
+    const separator = base && !base.endsWith(" ") ? " " : "";
+    const updated = base ? base + separator + spokenFull : spokenFull;
+    setValue(updated);
 
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.selectionStart = newCursor;
-          textareaRef.current.selectionEnd = newCursor;
-          textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
-        }
-      });
-
-      return text;
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
+      }
     });
   }, []);
 
@@ -75,10 +70,22 @@ export function ChatInput({
     isSupported: isSpeechSupported,
     interimTranscript,
     errorMessage: speechError,
-    toggleListening,
+    startListening,
+    stopListening,
   } = useSpeechRecognition({
     onTranscript: handleTranscript,
   });
+
+  const handleToggleVoice = useCallback(() => {
+    haptics.tap();
+    if (isListening) {
+      stopListening();
+      basePromptRef.current = value.trim();
+    } else {
+      basePromptRef.current = value.trim();
+      startListening();
+    }
+  }, [isListening, value, startListening, stopListening, haptics]);
 
   useEffect(() => {
     let cancelled = false;
@@ -339,10 +346,7 @@ export function ChatInput({
               {isSpeechSupported && (
                 <button
                   type="button"
-                  onClick={() => {
-                    haptics.tap();
-                    toggleListening();
-                  }}
+                  onClick={handleToggleVoice}
                   className={`icon-btn transition-colors relative ${
                     isListening
                       ? "text-red-500 bg-red-500/15 hover:bg-red-500/25 animate-pulse"

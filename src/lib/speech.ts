@@ -70,3 +70,31 @@ export function insertAtCursor(
 
   return { text, newCursor };
 }
+
+export function assembleSpeechResults(
+  results: Array<{ isFinal: boolean; transcript: string }>
+): { finalTranscript: string; interimTranscript: string; combined: string } {
+  let finalStr = "";
+  let interimStr = "";
+
+  for (const res of results) {
+    const trimmed = res.transcript.trim();
+    if (!trimmed) continue;
+    if (res.isFinal) {
+      finalStr += (finalStr && !finalStr.endsWith(" ") ? " " : "") + trimmed;
+    } else {
+      interimStr += (interimStr && !interimStr.endsWith(" ") ? " " : "") + trimmed;
+    }
+  }
+
+  const finalFormatted = formatSpokenText(finalStr);
+  const interimFormatted = interimStr.trim();
+  const separator = finalFormatted && interimFormatted ? " " : "";
+  const combined = finalFormatted + separator + interimFormatted;
+
+  return {
+    finalTranscript: finalFormatted,
+    interimTranscript: interimFormatted,
+    combined,
+  };
+}

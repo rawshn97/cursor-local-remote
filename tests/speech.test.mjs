@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatSpokenText, insertAtCursor } from "../src/lib/speech.ts";
+import { formatSpokenText, insertAtCursor, assembleSpeechResults } from "../src/lib/speech.ts";
 
 test("formatSpokenText transforms verbal punctuation to characters with proper spacing", () => {
   const spoken = "please refactor this function comma and run the tests period";
@@ -38,4 +38,32 @@ test("insertAtCursor avoids double spaces when inserting adjacent to whitespace"
   const original = "Hello ";
   const { text } = insertAtCursor(original, "world", 6, 6);
   assert.equal(text, "Hello world");
+});
+
+test("assembleSpeechResults prevents repetitive phrase duplication on progressive mobile speech events", () => {
+  // Simulating Android Web Speech progressive emissions
+  const step1 = assembleSpeechResults([{ isFinal: false, transcript: "I" }]);
+  assert.equal(step1.combined, "I");
+
+  const step2 = assembleSpeechResults([{ isFinal: false, transcript: "I am" }]);
+  assert.equal(step2.combined, "I am");
+
+  const step3 = assembleSpeechResults([{ isFinal: false, transcript: "I am testing" }]);
+  assert.equal(step3.combined, "I am testing");
+
+  const step4 = assembleSpeechResults([{ isFinal: true, transcript: "I am testing the voice agent now" }]);
+  assert.equal(step4.combined, "I am testing the voice agent now");
+
+  // Must NOT produce "I I am I am testing..."
+  assert.equal(step4.combined.includes("I I am"), false);
+});
+
+test("assembleSpeechResults correctly merges multiple final and interim chunks", () => {
+  const chunks = [
+    { isFinal: true, transcript: "First sentence period" },
+    { isFinal: true, transcript: "Second sentence period" },
+    { isFinal: false, transcript: "interim thought" },
+  ];
+  const { combined } = assembleSpeechResults(chunks);
+  assert.equal(combined, "First sentence. Second sentence. interim thought");
 });
