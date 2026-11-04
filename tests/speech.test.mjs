@@ -40,23 +40,19 @@ test("insertAtCursor avoids double spaces when inserting adjacent to whitespace"
   assert.equal(text, "Hello world");
 });
 
-test("assembleSpeechResults prevents repetitive phrase duplication on progressive mobile speech events", () => {
-  // Simulating Android Web Speech progressive emissions
-  const step1 = assembleSpeechResults([{ isFinal: false, transcript: "I" }]);
-  assert.equal(step1.combined, "I");
-
-  const step2 = assembleSpeechResults([{ isFinal: false, transcript: "I am" }]);
-  assert.equal(step2.combined, "I am");
-
-  const step3 = assembleSpeechResults([{ isFinal: false, transcript: "I am testing" }]);
-  assert.equal(step3.combined, "I am testing");
-
-  const step4 = assembleSpeechResults([{ isFinal: true, transcript: "I am testing the voice agent now" }]);
-  assert.equal(step4.combined, "I am testing the voice agent now");
-
-  // Must NOT produce "I I am I am testing..."
-  assert.equal(step4.combined.includes("I I am"), false);
+test("assembleSpeechResults deduplicates progressive final items emitted by Android Chrome", () => {
+  const androidProgressiveFinals = [
+    { isFinal: true, transcript: "I" },
+    { isFinal: true, transcript: "I am" },
+    { isFinal: true, transcript: "I am testing" },
+    { isFinal: true, transcript: "I am testing the voice agent now" },
+  ];
+  const { combined, finalTranscript } = assembleSpeechResults(androidProgressiveFinals);
+  assert.equal(finalTranscript, "I am testing the voice agent now");
+  assert.equal(combined, "I am testing the voice agent now");
+  assert.equal(combined.includes("I I am"), false);
 });
+
 
 test("assembleSpeechResults correctly merges multiple final and interim chunks", () => {
   const chunks = [

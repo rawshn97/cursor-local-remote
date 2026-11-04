@@ -75,12 +75,8 @@ export function useSpeechRecognition({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
-  const isManuallyStoppedRef = useRef(false);
-  const sessionCommittedRef = useRef("");
-  const currentSessionFinalRef = useRef("");
 
   const stopListening = useCallback(() => {
-    isManuallyStoppedRef.current = true;
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -105,9 +101,6 @@ export function useSpeechRecognition({
     }
 
     setErrorMessage(null);
-    isManuallyStoppedRef.current = false;
-    sessionCommittedRef.current = "";
-    currentSessionFinalRef.current = "";
 
     try {
       const recognition = new SpeechRecognitionClass();
@@ -132,21 +125,17 @@ export function useSpeechRecognition({
           }
         }
 
-        const { finalTranscript, interimTranscript, combined } = assembleSpeechResults(items);
-        currentSessionFinalRef.current = finalTranscript;
+        const { interimTranscript, combined } = assembleSpeechResults(items);
         setInterimTranscript(interimTranscript);
         onInterim?.(interimTranscript);
 
-        const separator = sessionCommittedRef.current && combined ? " " : "";
-        const fullSpoken = sessionCommittedRef.current + separator + combined;
-        if (fullSpoken) {
-          onTranscript?.(fullSpoken);
+        if (combined) {
+          onTranscript?.(combined);
         }
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (event.error === "no-speech") {
-          // Normal silence, keep listening unless manually stopped
           return;
         }
 
@@ -164,19 +153,6 @@ export function useSpeechRecognition({
       };
 
       recognition.onend = () => {
-        if (!isManuallyStoppedRef.current && isListening) {
-          if (currentSessionFinalRef.current) {
-            const separator = sessionCommittedRef.current ? " " : "";
-            sessionCommittedRef.current += separator + currentSessionFinalRef.current;
-            currentSessionFinalRef.current = "";
-          }
-          try {
-            recognition.start();
-            return;
-          } catch {
-            // Fall through to stop
-          }
-        }
         setIsListening(false);
         setInterimTranscript("");
       };
@@ -188,7 +164,7 @@ export function useSpeechRecognition({
       setErrorMessage("Could not start microphone.");
       setIsListening(false);
     }
-  }, [lang, onTranscript, onInterim, isListening]);
+  }, [lang, onTranscript, onInterim]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {

@@ -72,25 +72,42 @@ export function insertAtCursor(
 }
 
 export function assembleSpeechResults(
-  results: Array<{ isFinal: boolean; transcript: string }>
+  results: Array<{ isFinal?: boolean; transcript: string }>
 ): { finalTranscript: string; interimTranscript: string; combined: string } {
-  let finalStr = "";
+  const finalParts: string[] = [];
   let interimStr = "";
 
   for (const res of results) {
     const trimmed = res.transcript.trim();
     if (!trimmed) continue;
+
     if (res.isFinal) {
-      finalStr += (finalStr && !finalStr.endsWith(" ") ? " " : "") + trimmed;
+      const last = finalParts[finalParts.length - 1];
+      if (last && trimmed.toLowerCase().startsWith(last.toLowerCase())) {
+        finalParts[finalParts.length - 1] = trimmed;
+      } else if (last && last.toLowerCase().startsWith(trimmed.toLowerCase())) {
+        // Keep the longer previous entry
+      } else {
+        finalParts.push(trimmed);
+      }
     } else {
-      interimStr += (interimStr && !interimStr.endsWith(" ") ? " " : "") + trimmed;
+      interimStr = trimmed;
     }
   }
 
-  const finalFormatted = formatSpokenText(finalStr);
+  const finalFormatted = formatSpokenText(finalParts.join(" "));
   const interimFormatted = interimStr.trim();
-  const separator = finalFormatted && interimFormatted ? " " : "";
-  const combined = finalFormatted + separator + interimFormatted;
+
+  let combined = "";
+  if (finalFormatted && interimFormatted) {
+    if (interimFormatted.toLowerCase().startsWith(finalFormatted.toLowerCase())) {
+      combined = interimFormatted;
+    } else {
+      combined = `${finalFormatted} ${interimFormatted}`;
+    }
+  } else {
+    combined = finalFormatted || interimFormatted;
+  }
 
   return {
     finalTranscript: finalFormatted,
