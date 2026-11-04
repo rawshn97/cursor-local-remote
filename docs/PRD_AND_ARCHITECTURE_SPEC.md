@@ -3,7 +3,7 @@
 **Project ID:** `cd5ab6d5-3327-4fe6-b896-c9cd91d054dd`  
 **Owner:** `mishraroshanraj@gmail.com`  
 **Repository:** `cursor-local-remote`  
-**Status:** Baseline Verified (12 verified requirements, 1 draft voice requirement)  
+**Status:** Fully Verified (13 verified requirements, 0 draft)  
 **Specification Version:** 1.1.0  
 
 ---
@@ -178,9 +178,11 @@ stateDiagram-v2
 
 #### `REQ-010` (Mobile Voice Dictation & Audio Feedback)
 - **Requirement:** The mobile composer must provide desktop-grade speech-to-text dictation with live interim transcript streaming, visual audio activity feedback, cursor-position text insertion, and mobile touch ergonomics.
-- **Lifecycle:** `draft` (target implementation)
+- **Lifecycle:** `verified` (locked)
 - **Priority:** Should | **Category:** Functional, Usability
 - **Component:** `composer-voice`, `mobile-ui`
+- **Code References:** `src/hooks/use-speech-recognition.ts`, `src/lib/speech.ts`, `src/components/chat-input.tsx`
+- **Tests:** `tests/speech.test.mjs`
 - **Rationale:** Enables friction-free prompt input on mobile phones matching desktop voice dictation quality.
 - **Risk:** Poor audio streaming or sudden recognition drops create frustrating transcription errors on mobile keyboards.
 
@@ -256,7 +258,7 @@ stateDiagram-v2
 | **REQ-007** | Flashes tab title ("Done! - CLR"); plays audio chime; dispatches webhook payload. | Browser background event test |
 | **REQ-008** | Compliant PWA manifest; 44px min touch targets; responsive layout with active mobile virtual keyboard. | Mobile PWA installation audit |
 | **REQ-009** | Validates access token in query/header/cookie; blocks unauthorized LAN peers; supports Cloudflare Access headers. | Automated tests in `tests/validation.test.mjs` |
-| **REQ-010** | 44px touch mic button; real-time interim transcript streaming; cursor-position insertion; visual recording badge. | Speech recognition component test |
+| **REQ-010** | 44px touch mic button; real-time interim transcript streaming; cursor-position insertion; visual recording badge. | Automated tests in `tests/speech.test.mjs` (6 passing) |
 | **REQ-011** | SSE stream event latency < 150ms; client auto-reconnects within 2000ms on Wi-Fi drop; memory < 150MB RSS. | Latency & reconnect soak test |
 | **REQ-012** | Cryptographic 32-char token generated; constant-time comparison enforced; Zero Trust tunnel headers verified. | Automated tests in `tests/validation.test.mjs` |
 | **REQ-013** | Explicit lifecycle states; clean SIGINT/SIGTERM signal propagation; no zombie CLI child processes. | Process registry termination test |
@@ -276,4 +278,4 @@ stateDiagram-v2
 | **S-007** | Background notifications & webhooks | `REQ-007` | `verified` | Webhook dispatch test |
 | **S-008** | PWA home screen installation | `REQ-008` | `verified` | Manifest schema test |
 | **S-009** | Access key security & Zero Trust ingress | `REQ-009`, `REQ-012` | `verified` | `tests/validation.test.mjs` (3 passing) |
-| **S-010** | Desktop-grade mobile voice dictation | `REQ-010` | `draft` | Pending implementation |
+| **S-010** | Desktop-grade mobile voice dictation | `REQ-010` | `verified` | `tests/speech.test.mjs` (6 passing) |

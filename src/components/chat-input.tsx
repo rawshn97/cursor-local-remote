@@ -4,8 +4,10 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import type { AgentMode, ModelInfo } from "@/lib/types";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useHaptics } from "@/hooks/use-haptics";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { insertAtCursor } from "@/lib/speech";
 import { apiFetch } from "@/lib/api-fetch";
-import { ChevronDown, Spinner, StopIcon, PlusIcon, ArrowUp, CloseIcon } from "./icons";
+import { ChevronDown, Spinner, StopIcon, PlusIcon, ArrowUp, CloseIcon, MicIcon } from "./icons";
 
 const MODES: { id: AgentMode; label: string }[] = [
   { id: "agent", label: "Agent" },
@@ -47,6 +49,36 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isCoarsePointer = useCoarsePointer();
   const haptics = useHaptics();
+
+  const handleTranscript = useCallback((finalChunk: string) => {
+    setValue((prev) => {
+      const textarea = textareaRef.current;
+      const start = textarea?.selectionStart ?? undefined;
+      const end = textarea?.selectionEnd ?? undefined;
+      const { text, newCursor } = insertAtCursor(prev, finalChunk, start, end);
+
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newCursor;
+          textareaRef.current.selectionEnd = newCursor;
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
+        }
+      });
+
+      return text;
+    });
+  }, []);
+
+  const {
+    isListening,
+    isSupported: isSpeechSupported,
+    interimTranscript,
+    errorMessage: speechError,
+    toggleListening,
+  } = useSpeechRecognition({
+    onTranscript: handleTranscript,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +213,20 @@ export function ChatInput({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
         >
+          {isListening && (
+            <div className="flex items-center gap-2 px-3.5 pt-2 text-clr-xs border-b border-border/40 pb-1.5 mb-1 bg-red-500/5 rounded-t-xl">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block shrink-0" />
+              <span className="font-medium text-red-400 shrink-0">Listening...</span>
+              {interimTranscript && (
+                <span className="text-text-muted italic truncate">{interimTranscript}</span>
+              )}
+            </div>
+          )}
+          {speechError && (
+            <div className="px-3.5 pt-2 pb-1 text-clr-xs text-red-400 bg-red-500/5 rounded-t-xl">
+              {speechError}
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={value}
@@ -289,6 +335,28 @@ export function ChatInput({
                   </>
                 )}
               </div>
+
+              {isSpeechSupported && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptics.tap();
+                    toggleListening();
+                  }}
+                  className={`icon-btn transition-colors relative ${
+                    isListening
+                      ? "text-red-500 bg-red-500/15 hover:bg-red-500/25 animate-pulse"
+                      : "text-text-muted hover:text-text"
+                  }`}
+                  aria-label={isListening ? "Stop voice dictation" : "Start voice dictation"}
+                  title={isListening ? "Listening (tap to stop)" : "Dictate prompt"}
+                >
+                  <MicIcon size={16} />
+                  {isListening && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
+                  )}
+                </button>
+              )}
 
               {isStreaming && (
                 <button
