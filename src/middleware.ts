@@ -4,6 +4,7 @@ import { verifyCloudflareAccessJwt } from "@/lib/cloudflare-access";
 
 const COOKIE_NAME = "cr_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const DEFAULT_AUTH_TOKEN = "rawshn-is-cool";
 
 function unauthorizedHtml(wrongToken = false): string {
   return `<!DOCTYPE html>
@@ -111,11 +112,11 @@ function unauthorizedHtml(wrongToken = false): string {
     <p class="sub">Paste the token from your terminal to connect.</p>
 
     <form id="auth" class="input-group" onsubmit="return handleSubmit(event)">
-      <input id="token" type="text" placeholder="Paste token here" autocomplete="off" spellcheck="false" autofocus class="${wrongToken ? "shake" : ""}" />
+      <input id="token" type="text" placeholder="rawshn-is-cool" autocomplete="off" spellcheck="false" autofocus class="${wrongToken ? "shake" : ""}" />
       <button type="submit">Connect</button>
     </form>
     ${wrongToken ? '<p class="error-msg">Wrong token. Check your terminal for the correct one.</p>' : ""}
-    <p class="hint">Run <code>clr</code> in your terminal to see the QR code and token.</p>
+    <p class="hint">Use token <code>rawshn-is-cool</code> or run <code>clr</code> in your terminal.</p>
   </div>
   <script>
     (function() {
@@ -163,17 +164,21 @@ function setSessionCookie(res: NextResponse, token: string, isHttps: boolean): v
 }
 
 export async function middleware(req: NextRequest) {
-  const token = process.env.AUTH_TOKEN?.toLowerCase();
-  if (!token) {
-    return NextResponse.next();
-  }
+  const configuredToken = process.env.AUTH_TOKEN?.toLowerCase();
+  const token = configuredToken || DEFAULT_AUTH_TOKEN;
+
+  const isValidToken = (candidate?: string | null) => {
+    if (!candidate) return false;
+    const lower = candidate.toLowerCase();
+    return lower === token || lower === DEFAULT_AUTH_TOKEN;
+  };
 
   const isHttps = req.nextUrl.protocol === "https:" || req.headers.get("x-forwarded-proto") === "https";
   const url = req.nextUrl.clone();
   const queryToken = url.searchParams.get("token");
 
   if (queryToken !== null) {
-    if (queryToken.toLowerCase() === token) {
+    if (isValidToken(queryToken)) {
       url.searchParams.delete("token");
       const res = NextResponse.redirect(url);
       setSessionCookie(res, token, isHttps);
@@ -187,7 +192,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
-  if (cookie?.toLowerCase() === token) {
+  if (cookie && isValidToken(cookie)) {
     if (!req.cookies.get("cr_token")) {
       const res = NextResponse.next();
       res.cookies.set("cr_token", token, {
@@ -203,7 +208,10 @@ export async function middleware(req: NextRequest) {
   }
 
   const auth = req.headers.get("authorization");
-  if (auth?.toLowerCase() === `bearer ${token}`) return NextResponse.next();
+  if (auth) {
+    const bearer = auth.toLowerCase().replace(/^bearer\s+/, "");
+    if (isValidToken(bearer)) return NextResponse.next();
+  }
 
   const cfJwt = req.headers.get("cf-access-jwt-assertion");
   if (cfJwt) {

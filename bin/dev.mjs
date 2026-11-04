@@ -58,7 +58,7 @@ if (port !== startPort) {
   console.log(`Port ${startPort} in use, using ${port}`);
 }
 
-const authToken = process.env.AUTH_TOKEN || generateToken();
+const authToken = process.env.AUTH_TOKEN || "rawshn-is-cool";
 
 const isStart = process.argv.includes("--start");
 const nextBin = resolve(projectRoot, "node_modules", ".bin", "next");
