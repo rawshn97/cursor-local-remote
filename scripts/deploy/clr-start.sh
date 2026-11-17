@@ -39,7 +39,7 @@ fi
 
 if [[ ! -f "$CLR_ROOT/bin/cursor-remote.mjs" ]]; then
   echo "ERROR: CLR not found at $CLR_ROOT" >&2
-  echo "Clone: git clone https://github.com/ItsRRM97/cursor-local-remote.git" >&2
+  echo "Clone: git clone https://github.com/rawshn97/cursor-local-remote.git" >&2
   exit 1
 fi
 

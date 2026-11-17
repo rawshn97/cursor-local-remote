@@ -1,6 +1,6 @@
 # CLR remote deployment & API reference
 
-Repository: https://github.com/ItsRRM97/cursor-local-remote
+Repository: https://github.com/rawshn97/cursor-local-remote
 
 ## Architecture
 

@@ -4,7 +4,6 @@ import { verifyCloudflareAccessJwt } from "@/lib/cloudflare-access";
 
 const COOKIE_NAME = "cr_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const DEFAULT_AUTH_TOKEN = "rawshn-is-cool";
 
 function unauthorizedHtml(wrongToken = false): string {
   return `<!DOCTYPE html>
@@ -112,11 +111,11 @@ function unauthorizedHtml(wrongToken = false): string {
     <p class="sub">Paste the token from your terminal to connect.</p>
 
     <form id="auth" class="input-group" onsubmit="return handleSubmit(event)">
-      <input id="token" type="text" placeholder="rawshn-is-cool" autocomplete="off" spellcheck="false" autofocus class="${wrongToken ? "shake" : ""}" />
+      <input id="token" type="text" placeholder="alpine-berry" autocomplete="off" spellcheck="false" autofocus class="${wrongToken ? "shake" : ""}" />
       <button type="submit">Connect</button>
     </form>
     ${wrongToken ? '<p class="error-msg">Wrong token. Check your terminal for the correct one.</p>' : ""}
-    <p class="hint">Use token <code>rawshn-is-cool</code> or run <code>clr</code> in your terminal.</p>
+    <p class="hint">Token is printed when you run <code>clr</code>, or use <code>AUTH_TOKEN</code> / <code>auth-token.json</code> for launchd.</p>
   </div>
   <script>
     (function() {
@@ -165,12 +164,20 @@ function setSessionCookie(res: NextResponse, token: string, isHttps: boolean): v
 
 export async function middleware(req: NextRequest) {
   const configuredToken = process.env.AUTH_TOKEN?.toLowerCase();
-  const token = configuredToken || DEFAULT_AUTH_TOKEN;
+  if (!configuredToken) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "AUTH_TOKEN not configured" }, { status: 503 });
+    }
+    return new NextResponse("AUTH_TOKEN is not set. Run via clr or set AUTH_TOKEN.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+  const token = configuredToken;
 
   const isValidToken = (candidate?: string | null) => {
     if (!candidate) return false;
-    const lower = candidate.toLowerCase();
-    return lower === token || lower === DEFAULT_AUTH_TOKEN;
+    return candidate.toLowerCase() === token;
   };
 
   const isHttps = req.nextUrl.protocol === "https:" || req.headers.get("x-forwarded-proto") === "https";

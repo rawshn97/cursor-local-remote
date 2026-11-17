@@ -8,9 +8,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const info = getNetworkInfo(parseInt(process.env.PORT || String(DEFAULT_PORT), 10));
-  const token = process.env.AUTH_TOKEN || "rawshn-is-cool";
+  const token = process.env.AUTH_TOKEN ?? "";
   const publicUrl = process.env.PUBLIC_URL?.trim().replace(/\/$/, "");
-  const authUrl = publicUrl || (token ? `${info.url}?token=${token}` : info.url);
+  const authUrl =
+    publicUrl ||
+    (token ? `${info.url}?token=${encodeURIComponent(token)}` : info.url);
   const workspace = getWorkspace();
   const mcpToolCount = await countMcpTools(workspace);
   const mcpWorkspace = await resolveAgentWorkspace(workspace);

@@ -19,7 +19,7 @@ cloudflared on Mac ──► http://127.0.0.1:3100 ──► agent CLI ──►
 ## Quick start (LAN only)
 
 ```bash
-git clone https://github.com/ItsRRM97/cursor-local-remote.git
+git clone https://github.com/rawshn97/cursor-local-remote.git
 cd cursor-local-remote
 npm install
 npm run build

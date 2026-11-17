@@ -320,7 +320,7 @@ const isLocalOnly = hostname === "127.0.0.1" || hostname === "localhost";
 const localUrl = `http://localhost:${port}`;
 const networkUrl = !isLocalOnly && lanIp ? `http://${lanIp}:${port}` : null;
 
-const authToken = customToken || process.env.AUTH_TOKEN || "rawshn-is-cool";
+const authToken = customToken || process.env.AUTH_TOKEN || generateToken();
 
 const authUrl = `${localUrl}?token=${authToken}`;
 

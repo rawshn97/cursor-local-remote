@@ -39,11 +39,16 @@ Auto-scroll only runs when you are already at the bottom of the thread.
 
 On touch devices the hint below the mode pills shows `↵ newline · ↑ send`.
 
+### Voice dictation (phone / tablet)
+
+Tap the **microphone** in the composer to dictate. Interim text streams into the prompt; finalized phrases get light punctuation cleanup. Tap again to stop. Works best over HTTPS (PWA or Cloudflare URL). Uses the browser Web Speech API (Safari / Chrome).
+
 ## Sessions and projects
 
 - **No folder** — default scratch workspace (`~/.cursor-local-remote/no-folder`), like Cursor IDE "continue without a folder". Git panel shows "not a repository".
 - **Sidebar (☰)** — switch projects, open past sessions, start a new chat. **No folder** is pinned at the top.
-- Extra project roots: set `CLR_PROJECT_ROOTS` (colon-separated). If unset, `~/Projects` is scanned when it exists.
+- **Browse all projects** and **expand a project** to list its past chats without leaving the sidebar.
+- Projects merge **Cursor IDE recents** (`state.vscdb`) with folders under `~/Projects` (or `CLR_PROJECT_ROOTS`).
 - Sessions started in CLR may not appear in the desktop sidebar (Cursor limitation). File edits and terminal still run on your Mac.
 - **Star** projects in the sidebar to pin them at the top.
 

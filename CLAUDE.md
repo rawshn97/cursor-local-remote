@@ -6,6 +6,8 @@ Local-network PWA to control Cursor CLI from phone/browser. Stack: Next.js, Tail
 
 CLR runs on your Mac (launchd or `clr` CLI), not Vercel. Optional internet access via Cloudflare Tunnel.
 
+**Branches:** Public default is **`main`**. Maintainer personal deploy runbook is **`rawshn/local`** (see `docs/BRANCHES.md`). Never commit personal tokens to `main`.
+
 ## Key paths
 
 | Path | Purpose |
@@ -14,13 +16,17 @@ CLR runs on your Mac (launchd or `clr` CLI), not Vercel. Optional internet acces
 | `src/lib/workspace.ts` | Default workspace resolution |
 | `src/lib/cursor-workspaces.ts` | Project list from Cursor IDE `state.vscdb` |
 | `src/app/globals.css` | Design tokens, coarse-pointer scale (`@media (pointer: coarse)`) |
-| `src/components/chat-input.tsx` | Composer: send, modes, images, Enter key behavior |
+| `src/components/chat-input.tsx` | Composer: send, modes, images, voice dictation, Enter key behavior |
+| `src/lib/speech.ts` | Web Speech helpers, punctuation, progressive transcript dedup |
+| `tests/speech.test.mjs` | Voice dictation unit tests |
 | `src/components/message-list.tsx` | Scroll pin, Follow live, touch scroll |
 | `src/components/session-sidebar.tsx` | Project picker (**No folder** pinned) |
 | `bin/cursor-remote.mjs` | CLI entry (`clr`), starts Next.js on port 3100 |
 | `scripts/deploy/clr-start.sh` | LaunchAgent start wrapper |
 | `scripts/deploy/clr-service-install.sh` | Install/restart CLR launchd service |
-| `docs/USER_GUIDE.md` | End-user docs (scroll, queue, PWA, composer) |
+| `docs/USER_GUIDE.md` | End-user docs (scroll, queue, PWA, composer, voice) |
+| `docs/PRD_AND_ARCHITECTURE_SPEC.md` | PRD, REQ traceability, deploy boundaries |
+| `docs/BRANCHES.md` | `main` vs `rawshn/local` (agents read this) |
 | `deploy/README.md` | Cloudflare Tunnel setup |
 | `deploy/API.md` | Full API, auth, launchd, troubleshooting |
 

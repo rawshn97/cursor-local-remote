@@ -51,6 +51,7 @@ I'm actively using this myself on a daily basis, so bugs get noticed and fixed q
 - **Terminal access** — Access terminal from phone/browser 
 - **Session management** — browse, resume, archive, and export past sessions
 - **PWA ready** — install as an app on your phone's home screen
+- **Voice dictation** — mobile composer speech-to-text with live interim text and smart punctuation
 - **Notifications** — tab title flash + sound when agent finishes, optional webhook for push-to-phone (e.g. Discord)
 
 ## Notifications
@@ -126,7 +127,7 @@ The CLI starts a pre-built Next.js server on your machine. When you send a promp
 
 ### Authentication
 
-Every launch generates a memorable word-pair token (e.g. `alpine-berry`) printed in the terminal. You can set a fixed token via the `AUTH_TOKEN` env var. Access is granted by:
+Each `clr` launch generates a random two-word token (e.g. `alpine-berry`) unless you pass `--token` or set `AUTH_TOKEN`. The printed QR and URL include that token. Persistent installs (launchd) should set `AUTH_TOKEN` in the plist or store a fixed token in `~/.cursor-local-remote/auth-token.json`. Access is granted by:
 
 1. Scanning the QR code (encodes the network URL with the token)
 2. Visiting the URL with `?token=<token>` (sets an `httpOnly` cookie for 7 days)
@@ -201,13 +202,13 @@ More: [deploy/API.md](./deploy/API.md#troubleshooting) and [docs/USER_GUIDE.md](
 Contributions are welcome! Mainly created this so I can use Cursor when I don't feel like being at my desk. The whole project was vibecoded with Cursor, obviously.
 
 ```bash
-git clone https://github.com/ItsRRM97/cursor-local-remote.git
+git clone https://github.com/rawshn97/cursor-local-remote.git
 cd cursor-local-remote
 npm install
 npm run dev
 ```
 
-**Agent-oriented docs:** [CLAUDE.md](./CLAUDE.md) (key paths, deploy, mobile UX). **Design System:** [DESIGN.md](./DESIGN.md) (aesthetic direction, typography, color, spacing, motion, components). **User guide:** [docs/USER_GUIDE.md](./docs/USER_GUIDE.md). **Remote deploy:** [deploy/README.md](./deploy/README.md), [deploy/API.md](./deploy/API.md).
+**Agent-oriented docs:** [CLAUDE.md](./CLAUDE.md) (key paths, deploy, mobile UX). **Branches:** [docs/BRANCHES.md](./docs/BRANCHES.md) (`main` vs maintainer `rawshn/local`). **Design System:** [DESIGN.md](./DESIGN.md). **User guide:** [docs/USER_GUIDE.md](./docs/USER_GUIDE.md). **PRD / architecture:** [docs/PRD_AND_ARCHITECTURE_SPEC.md](./docs/PRD_AND_ARCHITECTURE_SPEC.md). **Remote deploy:** [deploy/README.md](./deploy/README.md), [deploy/API.md](./deploy/API.md).
 
 **Apply local changes (launchd install):**
 
