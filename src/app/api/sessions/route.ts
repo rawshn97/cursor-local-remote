@@ -45,8 +45,15 @@ export async function GET(req: Request) {
     return Response.json({ sessions: ours, workspace });
   }
 
-  const cursorSessions = await readCursorSessions(workspace);
   const ourSessions = await listSessions(workspace, archived);
+  const includeCursor = url.searchParams.get("includeCursor") === "true";
+
+  if (!includeCursor) {
+    vlog("sessions", "clr-only result", { count: ourSessions.length, ms: Date.now() - t0 });
+    return Response.json({ sessions: ourSessions, workspace });
+  }
+
+  const cursorSessions = await readCursorSessions(workspace);
   vlog("sessions", "fetched", { cursorSessions: cursorSessions.length, ourSessions: ourSessions.length });
 
   if (archived) {

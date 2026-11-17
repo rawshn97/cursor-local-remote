@@ -104,15 +104,32 @@ export function ChatContainer({
       .catch((err) => console.error("[workspace] Failed to fetch:", err));
   }, [initialWorkspace]);
 
-  useEffect(() => {
-    fetchWorkspace();
-    apiFetch("/api/sessions")
+  const fetchRecentSessions = useCallback(() => {
+    const ws = workspace || initialWorkspace;
+    if (!ws) return;
+    const params = new URLSearchParams({ workspace: ws });
+    apiFetch(`/api/sessions?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.sessions?.length > 0) setRecentSessions(data.sessions.slice(0, 3));
+        const list: StoredSession[] = data.sessions || [];
+        setRecentSessions(list.slice(0, 3));
       })
       .catch((err) => console.error("[sessions] Failed to fetch:", err));
+  }, [workspace, initialWorkspace]);
+
+  useEffect(() => {
+    fetchWorkspace();
   }, [fetchWorkspace]);
+
+  useEffect(() => {
+    fetchRecentSessions();
+  }, [fetchRecentSessions]);
+
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming) {
+      fetchRecentSessions();
+    }
+  }, [isStreaming, fetchRecentSessions]);
 
   useEffect(() => {
     const assistantMsgs = messages.filter((m) => m.role === "assistant").length;

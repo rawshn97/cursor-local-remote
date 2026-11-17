@@ -133,7 +133,7 @@ curl -sS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3100/api/info | pyth
 | Endpoint | Method | Body / query | Description |
 |----------|--------|--------------|-------------|
 | `/api/chat` | POST | `{ prompt, sessionId?, model?, mode?, workspace? }` | Send prompt to agent |
-| `/api/sessions` | GET | `?workspace=&archived=true` | List sessions |
+| `/api/sessions` | GET | `?workspace=&archived=true` | List CLR-started sessions (SQLite). `?includeCursor=true` merges Cursor IDE transcripts |
 | `/api/sessions` | PATCH | `{ action, sessionId? }` | Archive/unarchive |
 | `/api/sessions` | DELETE | `{ sessionId }` | Delete session |
 | `/api/sessions/active` | GET | — | Running agent session IDs |

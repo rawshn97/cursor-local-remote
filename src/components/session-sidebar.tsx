@@ -321,7 +321,7 @@ export function SessionSidebar({
   const fetchWorkspaceSessions = useCallback(async (workspace: string) => {
     setLoadingPaths((prev) => ({ ...prev, [workspace]: true }));
     try {
-      const params = new URLSearchParams({ workspace });
+      const params = new URLSearchParams({ workspace, includeCursor: "true" });
       if (showArchived) params.set("archived", "true");
       const r = await apiFetch("/api/sessions?" + params.toString());
       const data = await r.json();
@@ -374,6 +374,9 @@ export function SessionSidebar({
     }
     if (showArchived) {
       params.set("archived", "true");
+    }
+    if (!params.has("all")) {
+      params.set("includeCursor", "true");
     }
     const qs = params.toString();
     return apiFetch("/api/sessions" + (qs ? "?" + qs : ""))

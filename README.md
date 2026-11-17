@@ -141,7 +141,7 @@ All endpoints require a valid token (cookie or `Bearer` header).
 | --- | --- | --- |
 | `/api/chat` | `POST` | Send a prompt. Body: `{ prompt, sessionId?, model?, mode?, workspace? }` |
 | `/api/models` | `GET` | List available models from `agent models` (cached 5 min) |
-| `/api/sessions` | `GET` | Session list. `?workspace=<path>` to filter, `?archived=true` to include archived |
+| `/api/sessions` | `GET` | Session list. `?workspace=<path>` to filter, `?archived=true` for archived, `?includeCursor=true` to merge IDE transcripts (default is CLR-only for speed) |
 | `/api/sessions` | `PATCH` | Archive/unarchive sessions. Body: `{ action, sessionId? }` |
 | `/api/sessions` | `DELETE` | Delete a stored session. Body: `{ sessionId }` |
 | `/api/sessions/active` | `GET` | List currently running agent session IDs |

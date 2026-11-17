@@ -83,7 +83,7 @@ All `/api/*` require `cr_session` cookie or `Authorization: Bearer <token>`.
 | Endpoint | Method | Notes |
 |----------|--------|-------|
 | `/api/chat` | POST | `{ prompt, sessionId?, model?, mode?, workspace? }` |
-| `/api/sessions` | GET/PATCH/DELETE | List, archive, delete |
+| `/api/sessions` | GET/PATCH/DELETE | List (`?includeCursor=true` merges IDE), archive, delete |
 | `/api/sessions/watch` | GET (SSE) | Live session updates |
 | `/api/git` | GET/POST | Status, diff, commit, push |
 | `/api/info` | GET | Workspace, network URL |
