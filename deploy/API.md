@@ -1,6 +1,6 @@
 # CLR remote deployment & API reference
 
-Repository: https://github.com/rawshn97/cursor-local-remote
+Repository: https://github.com/rawshn97/cursor-local-remote (branch **`main`** for public setup). Maintainer Mac runbook: branch **`rawshn/local`**, see [docs/BRANCHES.md](../docs/BRANCHES.md).
 
 ## Architecture
 

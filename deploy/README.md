@@ -1,5 +1,7 @@
 # Remote web access (CLR on your Mac)
 
+Clone the default **`main`** branch unless you maintain a personal overlay branch (see [docs/BRANCHES.md](../docs/BRANCHES.md)).
+
 **CLR cannot run on Vercel.** It spawns the local Cursor `agent` CLI, reads your filesystem, and runs shell commands on your Mac. Vercel/serverless has no access to that.
 
 Web access works by exposing the **local** CLR server (`localhost:3100`) through **Cloudflare Tunnel** on a hostname you own (e.g. `clr.example.com`). Your Mac must stay **awake** while agents run.

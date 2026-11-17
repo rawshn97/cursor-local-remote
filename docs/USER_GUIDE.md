@@ -9,7 +9,7 @@ Quick reference for using **Cursor Local Remote** on phone, tablet, or browser.
 | **LAN (same Wi‑Fi)** | Run `clr` on your Mac. Scan the QR code or open the printed URL. |
 | **Internet** | Use your Cloudflare URL (e.g. `https://clr.example.com`). Sign in with Access, then bookmark with `?token=` if needed. See [deploy/README.md](../deploy/README.md). |
 
-Token is printed in the terminal or stored in `~/.cursor-local-remote/auth-token.json` when using launchd.
+Each `clr` run prints a **new** random token in the terminal unless you set `AUTH_TOKEN` or pass `--token`. For **launchd**, set a fixed token in the LaunchAgent (`AUTH_TOKEN`) or in `~/.cursor-local-remote/auth-token.json` (field `token`). The QR code and printed URL always include the active token.
 
 ## Chat while the agent runs
 
@@ -45,8 +45,8 @@ Tap the **microphone** in the composer to dictate. Interim text streams into the
 
 ## Sessions and projects
 
-- **No folder** — default scratch workspace (`~/.cursor-local-remote/no-folder`), like Cursor IDE "continue without a folder". Git panel shows "not a repository".
-- **Sidebar (☰)** — switch projects, open past sessions, start a new chat. **No folder** is pinned at the top.
+- **No folder**: default scratch workspace (`~/.cursor-local-remote/no-folder`), like Cursor IDE "continue without a folder". Git panel shows "not a repository".
+- **Sidebar (☰)**: switch projects, open past sessions, start a new chat. **No folder** is pinned at the top.
 - **Browse all projects** and **expand a project** to list its past chats without leaving the sidebar.
 - Projects merge **Cursor IDE recents** (`state.vscdb`) with folders under `~/Projects` (or `CLR_PROJECT_ROOTS`).
 - Sessions started in CLR may not appear in the desktop sidebar (Cursor limitation). File edits and terminal still run on your Mac.
@@ -81,8 +81,9 @@ Requires HTTPS for remote access.
 | `[REDACTED]` in old messages | Update CLR; transcripts strip Cursor redaction placeholders. Reload session. |
 | MCP / Notion not working | Enable **Workspace trust**. Pick a project that has MCP logged in on the Mac, or set `CLR_MCP_WORKSPACE`. |
 | 401 on remote URL | Add `?token=` from `auth-token.json` or complete Cloudflare Access login. |
+| 503 / AUTH_TOKEN not configured | Start CLR via `clr` or `clr-start.sh`, or set `AUTH_TOKEN` in the launchd plist. |
 | Agent failed to start / CLI not authenticated | On the Mac, run `agent login` in a terminal, then send again. |
 | Agent stops mid-task | Mac slept. Keep Mac awake on power for long remote jobs. |
 | macOS privacy popup | Install **CLR Server** app: `scripts/deploy/install-clr-app.sh`, grant Full Disk Access to CLR Server. |
 
-Full deployment and API details: [deploy/API.md](../deploy/API.md).
+Full deployment and API details: [deploy/API.md](../deploy/API.md). Repository branches: [docs/BRANCHES.md](./BRANCHES.md).
