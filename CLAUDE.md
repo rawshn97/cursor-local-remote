@@ -27,6 +27,7 @@ CLR runs on your Mac (launchd or `clr` CLI), not Vercel. Optional internet acces
 | `docs/USER_GUIDE.md` | End-user docs (scroll, queue, PWA, composer, voice) |
 | `docs/PRD_AND_ARCHITECTURE_SPEC.md` | PRD, REQ traceability, deploy boundaries |
 | `docs/BRANCHES.md` | `main` vs `rawshn/local` (agents read this) |
+| `docs/DEPLOY_MAC_RAWSHN.md` | **Branch `rawshn/local` only** — Mac launchd runbook |
 | `deploy/README.md` | Cloudflare Tunnel setup |
 | `deploy/API.md` | Full API, auth, launchd, troubleshooting |
 
