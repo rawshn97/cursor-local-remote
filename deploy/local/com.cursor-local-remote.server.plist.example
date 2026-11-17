@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Example only. Copy to ~/Library/LaunchAgents/ and replace placeholders.
+  Branch: rawshn/local — do not commit real secrets.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cursor-local-remote.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOU/bin/clr-start.sh</string>
+    <string>--no-open</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/YOU</string>
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/YOU/.cursor-local-remote/logs/clr.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOU/.cursor-local-remote/logs/clr.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/YOU/.local/bin</string>
+    <key>HOME</key>
+    <string>/Users/YOU</string>
+    <key>AUTH_TOKEN</key>
+    <string>YOUR_AUTH_TOKEN</string>
+    <key>CURSOR_DEFAULT_MODEL</key>
+    <string>auto</string>
+    <key>CLR_NODE</key>
+    <string>/Users/YOU/Applications/CLR.app/Contents/MacOS/clr-server</string>
+    <key>CLR_REPO</key>
+    <string>/Users/YOU/Projects/cursor-local-remote</string>
+    <key>CURSOR_API_KEY</key>
+    <string>YOUR_CURSOR_API_KEY</string>
+    <!-- Optional when tunnel is installed:
+    <key>PUBLIC_URL</key>
+    <string>https://clr.example.com</string>
+    -->
+  </dict>
+</dict>
+</plist>

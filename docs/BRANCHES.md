@@ -19,6 +19,8 @@ Public fork of [jon-makinen/cursor-local-remote](https://github.com/jon-makinen/
 2. Personal deploy or launchd notes for Rawshn's Mac: read or update **`rawshn/local`** (`docs/DEPLOY_MAC_RAWSHN.md`).
 3. Do not copy maintainer tokens from `rawshn/local` into shared code on `main`.
 
+Personal runbook on **`rawshn/local`:** `docs/DEPLOY_MAC_RAWSHN.md`, `deploy/local/*.plist.example`.
+
 ## Sync workflow (maintainer)
 
 ```bash
