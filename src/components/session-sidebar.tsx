@@ -293,8 +293,7 @@ export function SessionSidebar({
   );
 
   const projectLabel = useCallback((p: ProjectInfo) => {
-    if (p.displayPath?.startsWith("~/")) return p.displayPath.slice(2);
-    return p.name;
+    return p.name || workspaceDisplayName(p.path);
   }, []);
 
   const fetchWorkspaceSessions = useCallback(async (workspace: string) => {

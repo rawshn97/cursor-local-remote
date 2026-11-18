@@ -4,8 +4,21 @@ import { homedir } from "os";
 import { existsSync } from "fs";
 import { workspaceToProjectKey } from "@/lib/transcript-reader";
 import { workspaceDisplayName } from "@/lib/workspace";
+import {
+  glassRemovedProjectFilters,
+  workspaceRemovedByGlass,
+} from "@/lib/cursor-workspaces";
 import { ensureNoFolderDir, isNoFolderPath } from "@/lib/workspace-paths.server";
 import type { ProjectInfo } from "@/lib/types";
+
+/** Top-level scan roots that are folders, not git projects (archived repos live here). */
+const FILESYSTEM_SKIP_DIR_NAMES = new Set(["_archive"]);
+
+export function isFilesystemProjectDirName(name: string): boolean {
+  if (!name || name.startsWith(".")) return false;
+  if (FILESYSTEM_SKIP_DIR_NAMES.has(name)) return false;
+  return true;
+}
 
 function projectDir(workspace: string): string {
   return join(homedir(), ".cursor", "projects", workspaceToProjectKey(workspace));
@@ -82,6 +95,7 @@ const FILESYSTEM_PROJECT_CAP = 50;
 export async function listFilesystemProjects(): Promise<ProjectInfo[]> {
   const projects: ProjectInfo[] = [];
   const seen = new Set<string>();
+  const glassRemoved = glassRemovedProjectFilters();
 
   for (const root of projectScanRoots()) {
     if (projects.length >= FILESYSTEM_PROJECT_CAP) break;
@@ -89,9 +103,10 @@ export async function listFilesystemProjects(): Promise<ProjectInfo[]> {
       const entries = await readdir(root, { withFileTypes: true });
       for (const entry of entries) {
         if (projects.length >= FILESYSTEM_PROJECT_CAP) break;
-        if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+        if (!entry.isDirectory() || !isFilesystemProjectDirName(entry.name)) continue;
         const path = resolve(join(root, entry.name));
         if (seen.has(path) || isNoFolderPath(path)) continue;
+        if (workspaceRemovedByGlass(path, glassRemoved.paths, glassRemoved.repoUrls)) continue;
         if (!existsSync(join(path, ".git"))) continue;
         seen.add(path);
         projects.push({

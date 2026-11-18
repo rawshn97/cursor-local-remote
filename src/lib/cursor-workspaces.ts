@@ -249,7 +249,7 @@ function workspaceRepoRefs(
   return refs;
 }
 
-function workspaceRemovedByGlass(
+export function workspaceRemovedByGlass(
   path: string,
   removedPaths: Set<string>,
   removedRepoUrls: Set<string>,
@@ -260,6 +260,15 @@ function workspaceRemovedByGlass(
     if (removedRepoUrls.has(ref)) return true;
   }
   return false;
+}
+
+/** Paths and origin URLs hidden via Cursor glass.removedProjects. */
+export function glassRemovedProjectFilters(): {
+  paths: Set<string>;
+  repoUrls: Set<string>;
+} {
+  const removed = readItemJson("cursor/glass.removedProjects");
+  return removedFromGlassProjects(removed);
 }
 
 function repoLabelForWorkspace(
@@ -275,16 +284,8 @@ function repoLabelForWorkspace(
   return undefined;
 }
 
-function labelForPath(path: string, displayPath?: string): string {
+function labelForPath(path: string, _displayPath?: string): string {
   if (resolve(path) === resolve(homedir())) return "Home";
-  if (displayPath?.startsWith("~/")) {
-    const short = displayPath.slice(2);
-    const base = basename(short);
-    return base || short;
-  }
-  if (displayPath && displayPath !== path) {
-    return basename(displayPath) || displayPath;
-  }
   return basename(path) || path;
 }
 
