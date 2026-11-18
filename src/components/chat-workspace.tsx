@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useHaptics } from "@/hooks/use-haptics";
+import { useStarred } from "@/hooks/use-starred";
 import { fetchActiveSessions } from "@/hooks/use-chat";
 import { apiFetch } from "@/lib/api-fetch";
 import { vlog } from "@/lib/verbose";
@@ -54,6 +55,7 @@ export function ChatWorkspace() {
   const [qrOpen, setQrOpen] = useState(false);
   const [defaultModel, setDefaultModel] = useState<string>("auto");
   const haptics = useHaptics();
+  const starred = useStarred();
   const restoredRef = useRef(false);
   const settingsLoadedRef = useRef(false);
 
@@ -236,6 +238,8 @@ export function ChatWorkspace() {
               onOpenSidebar={() => setSidebarOpen(true)}
               onOpenSettings={() => setSettingsOpen(true)}
               onOpenQr={() => setQrOpen(true)}
+              onToggleSessionStar={starred.toggleSession}
+              starredSessionIds={starred.starredSessions}
             />
           </ErrorBoundary>
         </div>
@@ -250,6 +254,10 @@ export function ChatWorkspace() {
         onWorkspaceChange={handleWorkspaceChange}
         activeStatuses={activeStatuses}
         workspaceTerminals={workspaceTerminals}
+        starredProjects={starred.starredProjects}
+        starredSessions={starred.starredSessions}
+        onToggleProjectStar={starred.toggleProject}
+        onToggleSessionStar={starred.toggleSession}
       />
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} onDefaultModelChange={setDefaultModel} />

@@ -188,11 +188,21 @@ export async function listCursorWorkspaces(): Promise<CursorWorkspaceEntry[]> {
     if (!existsSync(path)) continue;
 
     const displayPath = entry.displayPath ?? entry.paths?.[0]?.displayPath;
+    const tracked = (entry as { trackedGitRepos?: Array<{ repoPath?: string; repoUrl?: string }> })
+      .trackedGitRepos;
+    let repoLabel: string | undefined;
+    if (Array.isArray(tracked)) {
+      const match =
+        tracked.find((t) => t.repoPath && resolve(t.repoPath) === resolve(path)) ??
+        tracked[0];
+      if (match?.repoUrl) repoLabel = match.repoUrl.replace(/^https?:\/\//, "");
+    }
     byPath.set(path, {
       name: labelForPath(path, displayPath),
       path,
       key: workspaceToProjectKey(path),
       displayPath,
+      repoLabel,
       lastUsedAt: recency.get(path) ?? 0,
     });
   }

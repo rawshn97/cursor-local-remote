@@ -6,7 +6,7 @@ import { useHaptics } from "@/hooks/use-haptics";
 import { apiFetch } from "@/lib/api-fetch";
 import { timeAgo, formatSessionTitle } from "@/lib/format";
 import { workspaceDisplayName } from "@/lib/workspace-name";
-import { RefreshIcon, CloseIcon, PlusIcon, Spinner, TrashIcon, ChevronDown, CheckIcon } from "./icons";
+import { RefreshIcon, CloseIcon, PlusIcon, Spinner, TrashIcon, ChevronDown, CheckIcon, StarIcon } from "./icons";
 
 interface SessionSidebarProps {
   open: boolean;
@@ -17,6 +17,10 @@ interface SessionSidebarProps {
   onWorkspaceChange?: (workspace: string | null) => void;
   activeStatuses?: Record<string, "streaming" | "idle">;
   workspaceTerminals?: Record<string, number>;
+  starredProjects: string[];
+  starredSessions: string[];
+  onToggleProjectStar: (path: string) => void;
+  onToggleSessionStar: (sessionId: string) => void;
 }
 
 function StatusIndicator({ status }: { status: "streaming" | "idle" }) {
@@ -70,7 +74,6 @@ function UnarchiveIcon({ size = 12, className = "" }: { size?: number; className
 }
 
 const PROJECT_STORAGE_KEY = "clr-selected-project-v2";
-const STARRED_STORAGE_KEY = "clr-starred-projects"; // localStorage fallback key
 const EXPANDED_STORAGE_KEY = "clr-expanded-projects";
 
 function loadExpandedLocal(): string[] {
@@ -84,42 +87,6 @@ function loadExpandedLocal(): string[] {
 
 function saveExpanded(paths: string[]) {
   localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify(paths));
-}
-
-function StarIcon({ size = 12, filled = false, className = "" }: { size?: number; filled?: boolean; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={filled ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
-
-function loadStarredLocal(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(STARRED_STORAGE_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveStarred(paths: string[]) {
-  localStorage.setItem(STARRED_STORAGE_KEY, JSON.stringify(paths));
-  apiFetch("/api/settings", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ starred_projects: JSON.stringify(paths) }),
-  }).catch(() => {});
 }
 
 function SessionTooltip({ session, children }: { session: StoredSession; children: React.ReactNode }) {
@@ -166,7 +133,9 @@ interface SessionRowProps {
   confirmingDelete: string | null;
   showArchived: boolean;
   status?: "streaming" | "idle";
+  sessionStarred: boolean;
   onSelect: () => void;
+  onStarClick: (e: React.MouseEvent, sessionId: string) => void;
   onDeleteClick: (e: React.MouseEvent, sessionId: string) => void;
   onArchiveClick: (e: React.MouseEvent, session: StoredSession) => void;
   onCancelDelete: (e: React.MouseEvent) => void;
@@ -179,7 +148,9 @@ function SessionRow({
   confirmingDelete,
   showArchived,
   status,
+  sessionStarred,
   onSelect,
+  onStarClick,
   onDeleteClick,
   onArchiveClick,
   onCancelDelete,
@@ -190,7 +161,7 @@ function SessionRow({
         <button
           onClick={onSelect}
           aria-current={session.id === currentSessionId ? "true" : undefined}
-          className={`group w-full text-left pl-8 pr-3 py-2.5 rounded-md transition-colors min-h-[var(--clr-touch-min)] ${
+          className={`group w-full text-left pl-3 pr-3 py-2.5 rounded-md transition-colors min-h-[var(--clr-touch-min)] ${
             session.id === currentSessionId
               ? "bg-bg-active text-text"
               : "hover:bg-bg-hover text-text-secondary"
@@ -198,6 +169,21 @@ function SessionRow({
         >
           <div className="flex items-start justify-between gap-2 pr-10 sm:pr-12">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => onStarClick(e, session.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onStarClick(e as unknown as React.MouseEvent, session.id);
+                }}
+                className={`shrink-0 p-0.5 rounded hover:bg-bg-surface ${
+                  sessionStarred ? "text-text-secondary opacity-100" : "text-text-muted/40 group-hover:text-text-muted"
+                }`}
+                aria-label={sessionStarred ? "Unstar session" : "Star session"}
+                aria-pressed={sessionStarred}
+              >
+                <StarIcon size={12} filled={sessionStarred} />
+              </span>
               {status && <StatusIndicator status={status} />}
               <p className="text-clr-sm truncate">{formatSessionTitle(session)}</p>
             </div>
@@ -260,6 +246,10 @@ export function SessionSidebar({
   onWorkspaceChange,
   activeStatuses = {},
   workspaceTerminals = {},
+  starredProjects,
+  starredSessions,
+  onToggleProjectStar,
+  onToggleSessionStar,
 }: SessionSidebarProps) {
   const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -270,7 +260,6 @@ export function SessionSidebar({
   const [recentProjects, setRecentProjects] = useState<ProjectInfo[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
-  const [starred, setStarred] = useState<string[]>([]);
   const [noFolderPath, setNoFolderPath] = useState<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
   const [sessionsByPath, setSessionsByPath] = useState<Record<string, StoredSession[]>>({});
@@ -279,39 +268,28 @@ export function SessionSidebar({
 
   useEffect(() => {
     const stored = localStorage.getItem(PROJECT_STORAGE_KEY);
-    const localStars = loadStarredLocal();
     const localExpanded = loadExpandedLocal();
     setSelectedProject(stored); // eslint-disable-line react-hooks/set-state-in-effect
-    setStarred(localStars); // eslint-disable-line react-hooks/set-state-in-effect
     setExpandedPaths(localExpanded); // eslint-disable-line react-hooks/set-state-in-effect
-
-    apiFetch("/api/settings")
-      .then((r) => r.json())
-      .then((data) => {
-        const serverStars = data.settings?.starred_projects;
-        if (serverStars) {
-          try {
-            const parsed: string[] = JSON.parse(serverStars);
-            if (parsed.length > 0 || localStars.length === 0) {
-              setStarred(parsed);
-              localStorage.setItem(STARRED_STORAGE_KEY, serverStars);
-            }
-          } catch { /* ignore bad json */ }
-        } else if (localStars.length > 0) {
-          saveStarred(localStars);
-        }
-      })
-      .catch(() => {});
   }, []);
 
-  const toggleStar = useCallback((e: React.MouseEvent, path: string) => {
-    e.stopPropagation();
-    setStarred((prev) => {
-      const next = prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path];
-      saveStarred(next);
-      return next;
-    });
-  }, []);
+  const toggleProjectStar = useCallback(
+    (e: React.MouseEvent, path: string) => {
+      e.stopPropagation();
+      haptics.tap();
+      onToggleProjectStar(path);
+    },
+    [haptics, onToggleProjectStar],
+  );
+
+  const handleSessionStarClick = useCallback(
+    (e: React.MouseEvent, sessionId: string) => {
+      e.stopPropagation();
+      haptics.tap();
+      onToggleSessionStar(sessionId);
+    },
+    [haptics, onToggleSessionStar],
+  );
 
   const projectLabel = useCallback((p: ProjectInfo) => {
     if (p.displayPath?.startsWith("~/")) return p.displayPath.slice(2);
@@ -404,6 +382,11 @@ export function SessionSidebar({
       cancelled = true;
     };
   }, [open, fetchSessions, fetchProjects]);
+
+  useEffect(() => {
+    if (!projectDropdownOpen) return;
+    fetchProjects();
+  }, [projectDropdownOpen, fetchProjects]);
 
   useEffect(() => {
     if (!open) return;
@@ -501,18 +484,20 @@ export function SessionSidebar({
         confirmingDelete={confirmingDelete}
         showArchived={showArchived}
         status={activeStatuses[s.id]}
+        sessionStarred={starredSessions.includes(s.id)}
         onSelect={() => {
           haptics.select();
           onSelectSession(s.id, s.workspace);
           onClose();
         }}
+        onStarClick={handleSessionStarClick}
         onDeleteClick={handleDeleteClick}
         onArchiveClick={handleArchiveClick}
         onCancelDelete={handleCancelDelete}
       />
     ));
 
-  const renderExpandableProject = (path: string, name: string, opts?: { starred?: boolean }) => {
+  const renderExpandableProject = (path: string, name: string) => {
     const isActive = selectedProject === path;
     const isExpanded = expandedPaths.includes(path);
     const termCount = workspaceTerminals[path] || 0;
@@ -546,15 +531,25 @@ export function SessionSidebar({
           <button
             onClick={() => handleProjectRowClick(path)}
             aria-current={isActive ? "true" : undefined}
-            className="flex-1 flex items-center gap-1.5 min-w-0 py-2.5 pr-2 text-clr-sm text-left"
+            className="flex-1 flex items-center gap-1.5 min-w-0 py-2.5 pr-1 text-clr-sm text-left"
           >
-            {opts?.starred ? (
-              <StarIcon size={10} filled className="shrink-0 text-text-secondary" />
-            ) : null}
             <span className="truncate flex-1">{name}</span>
             {termCount > 0 && (
               <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-success" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => toggleProjectStar(e, path)}
+            className={`shrink-0 icon-btn mr-0.5 ${
+              starredProjects.includes(path)
+                ? "text-text-secondary"
+                : "text-text-muted/40 hover:text-text-muted"
+            }`}
+            aria-label={starredProjects.includes(path) ? "Unstar project" : "Star project"}
+            aria-pressed={starredProjects.includes(path)}
+          >
+            <StarIcon size={12} filled={starredProjects.includes(path)} />
           </button>
         </div>
         {isExpanded && (
@@ -597,7 +592,7 @@ export function SessionSidebar({
       })()
       || "Current project";
 
-  const starredSet = new Set(starred);
+  const starredSet = new Set(starredProjects);
   const recentUnstarred = recentProjects.filter((p) => !starredSet.has(p.path));
   const selectedInLists =
     !!selectedProject &&
@@ -623,6 +618,7 @@ export function SessionSidebar({
                 haptics.tap();
                 setLoading(true);
                 Promise.all([
+                  fetchProjects(),
                   fetchSessions(),
                   ...expandedPaths.map((path) => fetchWorkspaceSessions(path)),
                 ]).finally(() => setLoading(false));
@@ -745,18 +741,18 @@ export function SessionSidebar({
                             )}
                           </div>
                           <span className="block text-clr-2xs text-text-muted font-mono truncate">
-                            {p.displayPath?.startsWith("~/") ? p.displayPath : p.path}
+                            {p.repoLabel || (p.displayPath?.startsWith("~/") ? p.displayPath : p.path)}
                           </span>
                         </div>
                         <span
-                          onClick={(e) => toggleStar(e, p.path)}
+                          onClick={(e) => toggleProjectStar(e, p.path)}
                           className={`shrink-0 p-0.5 rounded hover:bg-bg-active transition-colors ${
-                            starred.includes(p.path) ? "text-text-secondary" : "text-text-muted/30 hover:text-text-muted"
+                            starredProjects.includes(p.path) ? "text-text-secondary" : "text-text-muted/30 hover:text-text-muted"
                           }`}
                           role="button"
-                          aria-label={starred.includes(p.path) ? "Unstar project" : "Star project"}
+                          aria-label={starredProjects.includes(p.path) ? "Unstar project" : "Star project"}
                         >
-                          <StarIcon size={12} filled={starred.includes(p.path)} />
+                          <StarIcon size={12} filled={starredProjects.includes(p.path)} />
                         </span>
                       </button>
                     );
@@ -801,16 +797,16 @@ export function SessionSidebar({
             </div>
           )}
 
-          {starred.length > 0 && (
+          {starredProjects.length > 0 && (
             <div className="mb-2">
               <p className="text-clr-2xs text-text-muted uppercase tracking-wider px-3 pt-1 pb-0.5">
                 Starred
               </p>
-              {starred.map((path) => {
+              {starredProjects.map((path) => {
                 const proj = projects.find((p) => p.path === path)
                   || recentProjects.find((p) => p.path === path);
                 const name = proj ? projectLabel(proj) : workspaceDisplayName(path);
-                return renderExpandableProject(path, name, { starred: true });
+                return renderExpandableProject(path, name);
               })}
             </div>
           )}
@@ -852,7 +848,7 @@ export function SessionSidebar({
             </>
           )}
 
-          {!selectedProject && starred.length === 0 && recentUnstarred.length === 0 && (
+          {!selectedProject && starredProjects.length === 0 && recentUnstarred.length === 0 && (
             <p className="text-text-muted text-clr-sm text-center py-8">
               Pick a project to see chats
             </p>

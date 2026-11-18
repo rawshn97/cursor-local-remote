@@ -6,7 +6,7 @@ import { useHaptics } from "@/hooks/use-haptics";
 import { timeAgo, formatSessionTitle } from "@/lib/format";
 import { MessageBubble } from "./message-bubble";
 import { ToolCallCard, ToolCallGroup, TodoLogCard, ChangesSummary, isMinorToolCall } from "./tool-call-card";
-import { Spinner, RetryIcon, ClockIcon, ArrowDown } from "./icons";
+import { Spinner, RetryIcon, ClockIcon, ArrowDown, StarIcon } from "./icons";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -16,6 +16,7 @@ interface MessageListProps {
   isWatching?: boolean;
   recentSessions?: StoredSession[];
   onSelectSession?: (id: string, workspace?: string) => void;
+  onToggleSessionStar?: (sessionId: string) => void;
   onRetry?: () => void;
   queuedMessages?: QueuedMessage[];
   onForceSend?: (id: string) => void;
@@ -34,30 +35,55 @@ interface TimelineItem {
 function RecentSessions({
   sessions,
   onSelect,
+  onToggleStar,
 }: {
   sessions: StoredSession[];
   onSelect: (id: string, workspace?: string) => void;
+  onToggleStar?: (sessionId: string) => void;
 }) {
   const haptics = useHaptics();
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0) {
+    return (
+      <p className="mt-5 text-clr-xs text-text-muted max-w-xs">
+        Star a chat from the session list or header to pin it here.
+      </p>
+    );
+  }
 
   return (
     <div className="mt-5 w-full max-w-xs">
       <p className="text-text-muted text-clr-xs font-medium mb-2 uppercase tracking-wider">
-        Recent sessions
+        Starred sessions
       </p>
       <div className="space-y-1">
         {sessions.map((s) => (
-          <button
+          <div
             key={s.id}
-            onClick={() => { haptics.tap(); onSelect(s.id, s.workspace); }}
-            className="w-full text-left px-3 py-2 rounded-lg bg-bg-surface hover:bg-bg-hover border border-border/50 transition-colors group"
+            className="flex items-center gap-1 w-full rounded-lg bg-bg-surface hover:bg-bg-hover border border-border/50 transition-colors group"
           >
-            <p className="text-clr-sm text-text-secondary group-hover:text-text truncate">
-              {formatSessionTitle(s)}
-            </p>
-            <p className="text-clr-2xs text-text-muted mt-0.5">{timeAgo(s.updatedAt)}</p>
-          </button>
+            <button
+              type="button"
+              onClick={() => { haptics.tap(); onSelect(s.id, s.workspace); }}
+              className="flex-1 min-w-0 text-left px-3 py-2"
+            >
+              <p className="text-clr-sm text-text-secondary group-hover:text-text truncate">
+                {formatSessionTitle(s)}
+              </p>
+              <p className="text-clr-2xs text-text-muted mt-0.5">{timeAgo(s.updatedAt)}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                haptics.tap();
+                onToggleStar?.(s.id);
+              }}
+              className="shrink-0 icon-btn mr-1 text-text-secondary"
+              aria-label="Unstar session"
+              aria-pressed
+            >
+              <StarIcon size={14} filled />
+            </button>
+          </div>
         ))}
       </div>
     </div>
@@ -176,6 +202,7 @@ export function MessageList({
   isWatching,
   recentSessions = [],
   onSelectSession,
+  onToggleSessionStar,
   onRetry,
   queuedMessages = [],
   onForceSend,
@@ -354,7 +381,11 @@ export function MessageList({
             Send a message to start an agent session.
           </p>
           {onSelectSession && (
-            <RecentSessions sessions={recentSessions} onSelect={onSelectSession} />
+            <RecentSessions
+              sessions={recentSessions}
+              onSelect={onSelectSession}
+              onToggleStar={onToggleSessionStar}
+            />
           )}
         </div>
       </div>

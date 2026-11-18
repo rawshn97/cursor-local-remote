@@ -75,6 +75,8 @@ export interface ProjectInfo {
   key: string;
   /** Cursor-style path label, e.g. ~/Projects/foo */
   displayPath?: string;
+  /** Live git remote label from Cursor workspace metadata */
+  repoLabel?: string;
   /** Recency from Cursor workspace metadata (ms or rank score) */
   lastUsedAt?: number;
 }

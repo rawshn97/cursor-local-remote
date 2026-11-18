@@ -12,7 +12,7 @@ import { workspaceDisplayName } from "@/lib/workspace-name";
 import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
 import { exportSessionMarkdown } from "@/lib/export";
-import { MenuIcon, SettingsIcon, ExportIcon, CheckIcon, GitBranchIcon, CloseIcon, TerminalIcon } from "./icons";
+import { MenuIcon, SettingsIcon, ExportIcon, CheckIcon, GitBranchIcon, CloseIcon, TerminalIcon, StarIcon } from "./icons";
 import { GitPanel } from "./git-panel";
 import { TerminalPanel } from "./terminal-panel";
 
@@ -27,6 +27,8 @@ interface ChatContainerProps {
   onOpenSidebar?: () => void;
   onOpenSettings?: () => void;
   onOpenQr?: () => void;
+  onToggleSessionStar?: (sessionId: string) => void;
+  starredSessionIds?: string[];
 }
 
 export function ChatContainer({
@@ -40,6 +42,8 @@ export function ChatContainer({
   onOpenSidebar,
   onOpenSettings,
   onOpenQr,
+  onToggleSessionStar,
+  starredSessionIds = [],
 }: ChatContainerProps) {
   const [workspace, setWorkspace] = useState<string>(initialWorkspace || "");
 
@@ -81,6 +85,7 @@ export function ChatContainer({
   const loadedInitialRef = useRef(false);
   const prevStreamingRef = useRef(false);
   const streamStartRef = useRef(0);
+  const sessionStarred = sessionId ? starredSessionIds.includes(sessionId) : false;
 
   useEffect(() => {
     if (initialSessionId && !loadedInitialRef.current) {
@@ -105,17 +110,24 @@ export function ChatContainer({
   }, [initialWorkspace]);
 
   const fetchRecentSessions = useCallback(() => {
-    const ws = workspace || initialWorkspace;
-    if (!ws) return;
-    const params = new URLSearchParams({ workspace: ws });
+    if (starredSessionIds.length === 0) {
+      setRecentSessions([]);
+      return;
+    }
+    const params = new URLSearchParams({ all: "true", includeCursor: "true" });
     apiFetch(`/api/sessions?${params}`)
       .then((r) => r.json())
       .then((data) => {
         const list: StoredSession[] = data.sessions || [];
-        setRecentSessions(list.slice(0, 3));
+        const starredSet = new Set(starredSessionIds);
+        const pinned = list
+          .filter((s) => starredSet.has(s.id))
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .slice(0, 8);
+        setRecentSessions(pinned);
       })
       .catch((err) => console.error("[sessions] Failed to fetch:", err));
-  }, [workspace, initialWorkspace]);
+  }, [starredSessionIds]);
 
   useEffect(() => {
     fetchWorkspace();
@@ -123,7 +135,7 @@ export function ChatContainer({
 
   useEffect(() => {
     fetchRecentSessions();
-  }, [fetchRecentSessions]);
+  }, [fetchRecentSessions, starredSessionIds]);
 
   useEffect(() => {
     if (prevStreamingRef.current && !isStreaming) {
@@ -305,6 +317,22 @@ export function ChatContainer({
               {sessionId.slice(0, 8)}
             </span>
           )}
+          {sessionId && (
+            <button
+              onClick={() => {
+                haptics.tap();
+                onToggleSessionStar?.(sessionId);
+                fetchRecentSessions();
+              }}
+              className={`icon-btn hover:bg-bg-hover ${
+                sessionStarred ? "text-text-secondary" : "text-text-muted hover:text-text-secondary"
+              }`}
+              aria-label={sessionStarred ? "Unstar session" : "Star session"}
+              aria-pressed={sessionStarred}
+            >
+              <StarIcon size={16} filled={sessionStarred} />
+            </button>
+          )}
           {sessionId && messages.length > 0 && (
             <button
               onClick={handleExport}
@@ -393,6 +421,10 @@ export function ChatContainer({
         isWatching={isWatching}
         recentSessions={recentSessions}
         onSelectSession={onSelectSession ?? loadSession}
+        onToggleSessionStar={(id) => {
+          onToggleSessionStar?.(id);
+          fetchRecentSessions();
+        }}
         onRetry={retryLastMessage}
         queuedMessages={queuedMessages}
         onForceSend={forceSendQueued}
