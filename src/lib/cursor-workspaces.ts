@@ -119,23 +119,98 @@ function recencyFromRecentPaths(data: unknown): Map<string, number> {
   return map;
 }
 
-function removedWorkspacePaths(data: unknown): Set<string> {
-  const removed = new Set<string>();
-  if (!Array.isArray(data)) return removed;
+/** Normalize git remote / Cursor repo URL for stable comparison. */
+export function normalizeRepoRef(url: string): string {
+  let s = url.trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, "");
+  s = s.replace(/\.git$/, "");
+  return s;
+}
+
+export function removedFromGlassProjects(data: unknown): {
+  paths: Set<string>;
+  repoUrls: Set<string>;
+} {
+  const paths = new Set<string>();
+  const repoUrls = new Set<string>();
+  if (!Array.isArray(data)) return { paths, repoUrls };
   for (const item of data) {
     if (!item || typeof item !== "object") continue;
     const row = item as {
       type?: string;
       displayPath?: string;
       workspaceIdentifier?: { uri?: unknown };
+      repoUrls?: string[];
+      repoUrl?: string;
     };
-    if (row.type !== "workspace") continue;
-    const path =
-      pathFromUriObject(row.workspaceIdentifier?.uri) ??
-      (row.displayPath ? expandDisplayPath(row.displayPath) : null);
-    if (path) removed.add(path);
+    if (row.type === "workspace") {
+      const path =
+        pathFromUriObject(row.workspaceIdentifier?.uri) ??
+        (row.displayPath ? expandDisplayPath(row.displayPath) : null);
+      if (path) paths.add(path);
+      continue;
+    }
+    if (row.type === "repo") {
+      const urls = row.repoUrls ?? (row.repoUrl ? [row.repoUrl] : []);
+      for (const u of urls) {
+        if (u) repoUrls.add(normalizeRepoRef(u));
+      }
+    }
   }
-  return removed;
+  return { paths, repoUrls };
+}
+
+function gitOriginRepoRef(path: string): string | undefined {
+  if (!existsSync(join(path, ".git"))) return undefined;
+  try {
+    const url = execFileSync("git", ["-C", path, "remote", "get-url", "origin"], {
+      encoding: "utf8",
+    }).trim();
+    return url ? normalizeRepoRef(url) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function workspaceRepoRefs(
+  path: string,
+  tracked?: Array<{ repoPath?: string; repoUrl?: string }>,
+): Set<string> {
+  const refs = new Set<string>();
+  const live = gitOriginRepoRef(path);
+  if (live) refs.add(live);
+  if (Array.isArray(tracked)) {
+    for (const t of tracked) {
+      if (t.repoUrl) refs.add(normalizeRepoRef(t.repoUrl));
+    }
+  }
+  return refs;
+}
+
+function workspaceRemovedByGlass(
+  path: string,
+  removedPaths: Set<string>,
+  removedRepoUrls: Set<string>,
+  tracked?: Array<{ repoPath?: string; repoUrl?: string }>,
+): boolean {
+  if (removedPaths.has(path)) return true;
+  for (const ref of workspaceRepoRefs(path, tracked)) {
+    if (removedRepoUrls.has(ref)) return true;
+  }
+  return false;
+}
+
+function repoLabelForWorkspace(
+  path: string,
+  tracked?: Array<{ repoPath?: string; repoUrl?: string }>,
+): string | undefined {
+  const live = gitOriginRepoRef(path);
+  if (live) return live;
+  if (!Array.isArray(tracked)) return undefined;
+  const match =
+    tracked.find((t) => t.repoPath && resolve(t.repoPath) === resolve(path)) ?? tracked[0];
+  if (match?.repoUrl) return normalizeRepoRef(match.repoUrl);
+  return undefined;
 }
 
 function labelForPath(path: string, displayPath?: string): string {
@@ -160,7 +235,7 @@ export async function listCursorWorkspaces(): Promise<CursorWorkspaceEntry[]> {
   const removed = readItemJson("cursor/glass.removedProjects");
   const recent = readItemJson("history.recentlyOpenedPathsList");
 
-  const removedPaths = removedWorkspacePaths(removed);
+  const { paths: removedPaths, repoUrls: removedRepoUrls } = removedFromGlassProjects(removed);
   const recency = new Map<string, number>();
   for (const [path, ts] of recencyFromAdditionalProjects(additional)) {
     recency.set(path, ts);
@@ -184,19 +259,13 @@ export async function listCursorWorkspaces(): Promise<CursorWorkspaceEntry[]> {
       pathFromUriObject(entry.paths?.[0]?.uri) ??
       (entry.displayPath ? expandDisplayPath(entry.displayPath) : null);
 
-    if (!path || removedPaths.has(path)) continue;
+    const tracked = (entry as { trackedGitRepos?: Array<{ repoPath?: string; repoUrl?: string }> })
+      .trackedGitRepos;
+    if (!path || workspaceRemovedByGlass(path, removedPaths, removedRepoUrls, tracked)) continue;
     if (!existsSync(path)) continue;
 
     const displayPath = entry.displayPath ?? entry.paths?.[0]?.displayPath;
-    const tracked = (entry as { trackedGitRepos?: Array<{ repoPath?: string; repoUrl?: string }> })
-      .trackedGitRepos;
-    let repoLabel: string | undefined;
-    if (Array.isArray(tracked)) {
-      const match =
-        tracked.find((t) => t.repoPath && resolve(t.repoPath) === resolve(path)) ??
-        tracked[0];
-      if (match?.repoUrl) repoLabel = match.repoUrl.replace(/^https?:\/\//, "");
-    }
+    const repoLabel = repoLabelForWorkspace(path, tracked);
     byPath.set(path, {
       name: labelForPath(path, displayPath),
       path,
