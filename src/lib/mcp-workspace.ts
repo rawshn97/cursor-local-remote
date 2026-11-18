@@ -76,18 +76,23 @@ function projectScanRoots(): string[] {
   return roots.map((r) => resolve(r));
 }
 
-/** Top-level folders under CLR_PROJECT_ROOTS (or ~/Projects when unset). */
+const FILESYSTEM_PROJECT_CAP = 50;
+
+/** Top-level git repos under CLR_PROJECT_ROOTS (or ~/Projects when unset). */
 export async function listFilesystemProjects(): Promise<ProjectInfo[]> {
   const projects: ProjectInfo[] = [];
   const seen = new Set<string>();
 
   for (const root of projectScanRoots()) {
+    if (projects.length >= FILESYSTEM_PROJECT_CAP) break;
     try {
       const entries = await readdir(root, { withFileTypes: true });
       for (const entry of entries) {
+        if (projects.length >= FILESYSTEM_PROJECT_CAP) break;
         if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
         const path = resolve(join(root, entry.name));
         if (seen.has(path) || isNoFolderPath(path)) continue;
+        if (!existsSync(join(path, ".git"))) continue;
         seen.add(path);
         projects.push({
           name: workspaceDisplayName(path),

@@ -1,7 +1,7 @@
 import { execFileSync } from "child_process";
 import { existsSync } from "fs";
 import { homedir } from "os";
-import { join, resolve, basename } from "path";
+import { join, resolve, basename, sep } from "path";
 import type { ProjectInfo } from "@/lib/types";
 import { workspaceToProjectKey } from "@/lib/transcript-reader";
 import { vlog } from "@/lib/verbose";
@@ -96,6 +96,68 @@ function recencyFromAdditionalProjects(data: unknown): Map<string, number> {
     if (!path || !row.lastUsedAt) continue;
     map.set(path, Math.max(map.get(path) ?? 0, row.lastUsedAt));
   }
+  return map;
+}
+
+function projectsScanRoot(): string {
+  return resolve(homedir(), "Projects");
+}
+
+/** Top-level folder under ~/Projects for a file opened from a nested path. */
+export function projectRootFromProjectsFilePath(filePath: string): string | null {
+  const root = projectsScanRoot();
+  const resolved = resolve(filePath);
+  if (!resolved.startsWith(root + sep)) return null;
+  const rel = resolved.slice(root.length + 1);
+  const segment = rel.split(/[/\\]/)[0];
+  if (!segment || segment.startsWith(".")) return null;
+  return resolve(join(root, segment));
+}
+
+function workspacePathsFromGlassAndHistory(
+  additional: unknown,
+  recent: unknown,
+): Map<string, number> {
+  const map = new Map<string, number>();
+
+  if (Array.isArray(additional)) {
+    for (const item of additional) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as {
+        type?: string;
+        lastUsedAt?: number;
+        displayPath?: string;
+        workspaceIdentifier?: { uri?: unknown };
+      };
+      if (row.type !== "workspace") continue;
+      const path =
+        pathFromUriObject(row.workspaceIdentifier?.uri) ??
+        (row.displayPath ? expandDisplayPath(row.displayPath) : null);
+      if (!path || !row.lastUsedAt) continue;
+      map.set(path, Math.max(map.get(path) ?? 0, row.lastUsedAt));
+    }
+  }
+
+  const entries = Array.isArray(recent)
+    ? recent
+    : recent && typeof recent === "object" && Array.isArray((recent as { entries?: unknown[] }).entries)
+      ? (recent as { entries: unknown[] }).entries
+      : [];
+  let rank = entries.length;
+  for (const item of entries) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as { folderUri?: string; fileUri?: string };
+    const score = rank * 1_000;
+    const folder = decodeFolderUri(row.folderUri);
+    if (folder) map.set(folder, Math.max(map.get(folder) ?? 0, score));
+    const file = decodeFolderUri(row.fileUri);
+    if (file) {
+      const project = projectRootFromProjectsFilePath(file);
+      if (project) map.set(project, Math.max(map.get(project) ?? 0, score));
+    }
+    rank -= 1;
+  }
+
   return map;
 }
 
@@ -246,6 +308,8 @@ export async function listCursorWorkspaces(): Promise<CursorWorkspaceEntry[]> {
 
   const byPath = new Map<string, CursorWorkspaceEntry>();
 
+  const historyPaths = workspacePathsFromGlassAndHistory(additional, recent);
+
   for (const raw of metadata.entries) {
     if (!raw || typeof raw !== "object") continue;
     const entry = raw as {
@@ -273,6 +337,19 @@ export async function listCursorWorkspaces(): Promise<CursorWorkspaceEntry[]> {
       displayPath,
       repoLabel,
       lastUsedAt: recency.get(path) ?? 0,
+    });
+  }
+
+  for (const [path, lastUsedAt] of historyPaths) {
+    if (byPath.has(path)) continue;
+    if (!existsSync(path)) continue;
+    if (workspaceRemovedByGlass(path, removedPaths, removedRepoUrls)) continue;
+    byPath.set(path, {
+      name: labelForPath(path),
+      path,
+      key: workspaceToProjectKey(path),
+      repoLabel: gitOriginRepoRef(path),
+      lastUsedAt,
     });
   }
 

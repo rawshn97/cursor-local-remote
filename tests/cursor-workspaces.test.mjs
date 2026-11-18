@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
   normalizeRepoRef,
+  projectRootFromProjectsFilePath,
   removedFromGlassProjects,
 } from "../src/lib/cursor-workspaces.ts";
 
@@ -14,6 +17,15 @@ test("normalizeRepoRef strips scheme, git suffix, and case", () => {
     normalizeRepoRef("github.com/rawshn97/para-dashboard"),
     "github.com/rawshn97/para-dashboard",
   );
+});
+
+test("projectRootFromProjectsFilePath resolves top-level repo under ~/Projects", () => {
+  const root = join(homedir(), "Projects", "content-creation");
+  assert.equal(
+    projectRootFromProjectsFilePath(join(root, "docs", "readme.md")),
+    root,
+  );
+  assert.equal(projectRootFromProjectsFilePath("/tmp/readme.md"), null);
 });
 
 test("removedFromGlassProjects collects workspace paths and removed repo URLs", () => {

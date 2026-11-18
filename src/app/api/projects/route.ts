@@ -26,9 +26,7 @@ export async function GET() {
     const [cursorProjects, dbWorkspaces, filesystemProjects] = await Promise.all([
       listCursorWorkspaces(),
       listWorkspaces(),
-      process.env.CLR_PROJECT_ROOTS_FALLBACK === "1"
-        ? listFilesystemProjects()
-        : Promise.resolve([] as ProjectInfo[]),
+      listFilesystemProjects(),
     ]);
     const currentWorkspace = getWorkspace();
     const mcpOverride = process.env.CLR_MCP_WORKSPACE?.trim();
