@@ -75,6 +75,7 @@ function UnarchiveIcon({ size = 12, className = "" }: { size?: number; className
 
 const PROJECT_STORAGE_KEY = "clr-selected-project-v2";
 const EXPANDED_STORAGE_KEY = "clr-expanded-projects";
+const PROJECTS_REFRESH_MIN_MS = 30_000;
 
 function loadExpandedLocal(): string[] {
   if (typeof window === "undefined") return [];
@@ -319,8 +320,16 @@ export function SessionSidebar({
     });
   }, []);
 
-  const fetchProjects = useCallback(() => {
-    apiFetch("/api/projects")
+  const projectsLastFetchRef = useRef(0);
+
+  const fetchProjects = useCallback((options?: { force?: boolean }): Promise<void> => {
+    const force = options?.force ?? false;
+    const now = Date.now();
+    if (!force && now - projectsLastFetchRef.current < PROJECTS_REFRESH_MIN_MS) {
+      return Promise.resolve();
+    }
+    projectsLastFetchRef.current = now;
+    return apiFetch("/api/projects")
       .then((r) => r.json())
       .then((data) => {
         setProjects(data.projects || []);
@@ -341,6 +350,23 @@ export function SessionSidebar({
       })
       .catch(() => {});
   }, [selectedProject, onWorkspaceChange]);
+
+  const fetchProjectsRef = useRef(fetchProjects);
+  fetchProjectsRef.current = fetchProjects;
+
+  useEffect(() => {
+    void fetchProjectsRef.current();
+  }, []);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void fetchProjectsRef.current();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   const fetchSessions = useCallback(() => {
     setFetchError(null);
@@ -618,7 +644,7 @@ export function SessionSidebar({
                 haptics.tap();
                 setLoading(true);
                 Promise.all([
-                  fetchProjects(),
+                  fetchProjects({ force: true }),
                   fetchSessions(),
                   ...expandedPaths.map((path) => fetchWorkspaceSessions(path)),
                 ]).finally(() => setLoading(false));
